@@ -68,9 +68,9 @@ Phase 6: Write DESIGN.md & Confirm（写入设计系统文档并确认）
 
 ### 2.2 Phase 0：Pre-checks（前置检查）
 
-> **原文：** "Before you design anything, understand what exists. Read the codebase. Find existing CSS, design tokens, component libraries. If there's a DESIGN.md, read it. If there's a Tailwind config, that IS the design system."
+> **源码实际行为（Phase 0: Pre-checks）：** Phase 0 执行具体的 bash 命令检查：检查现有 DESIGN.md 是否存在、读取 README.md 和 package.json、检查 src/app/pages/components 目录、查找 brainstorm 产出。如果已有 DESIGN.md，询问用户"Want to **update** it, **start fresh**, or **cancel**?"
 >
-> **翻译：** 在你设计任何东西之前，先理解已有的东西。读代码库。找到现有的 CSS、设计代币、组件库。如果有 DESIGN.md，读它。如果有 Tailwind 配置，那就是设计系统。
+> 注意：源码中没有"Before you design anything, understand what exists..."这段概括性引文。源码直接列出了具体的检查命令和判断逻辑。
 
 **前置检查清单：**
 
@@ -90,9 +90,9 @@ Phase 6: Write DESIGN.md & Confirm（写入设计系统文档并确认）
 
 ### 2.3 Phase 1：Product Context（产品上下文）
 
-> **原文：** "Ask the user, don't assume. What is this product? Who uses it? What's the core task? What's the emotional tone — playful, professional, urgent, calming? What competitors exist?"
+> **原文（Phase 1: Product Context）：** "Ask the user a single question that covers everything you need to know. Pre-fill what you can infer from the codebase." AskUserQuestion Q1 需包含：1) 确认产品是什么、为谁、什么行业 2) 项目类型 3) 是否要研究竞品 4) "Explicitly say: 'At any point you can just drop into chat and we'll talk through anything — this isn't a rigid form, it's a conversation.'"
 >
-> **翻译：** 问用户，不要假设。这个产品是什么？谁在用？核心任务是什么？情感基调是什么——活泼的、专业的、紧急的、平静的？有哪些竞品？
+> **翻译：** 问用户一个涵盖你需要知道的一切的问题。预填你能从代码库推断的内容。/ 明确说："你随时可以进入聊天模式，我们可以讨论任何事情——这不是一个死板的表单，是一段对话。"
 
 这个阶段用 AskUserQuestion 收集关键上下文。它不会假设你在做什么——它问你。
 
@@ -111,9 +111,9 @@ Phase 6: Write DESIGN.md & Confirm（写入设计系统文档并确认）
 
 这是 `/design-consultation` 独有的阶段——它做真正的研究，而不是依赖训练数据中的静态知识。
 
-> **原文：** "Use WebSearch to research: 1) Direct competitors' current design patterns, 2) Category leaders' design language, 3) Emerging design trends in this space, 4) Anti-patterns to avoid. Browse screenshots the user provides to understand the current state."
+> **原文（Phase 2: Research, Step 1 + Step 3）：** "Use WebSearch to find 5-10 products in their space." / "The goal of research is NOT to copy. It is to get in the ballpark — to understand the visual language users in this category already expect. This gives you the baseline. The interesting design work starts after you have the baseline: deciding where to follow conventions (so the product feels literate) and where to break from them (so the product is memorable)."
 >
-> **翻译：** 使用 WebSearch 研究：1) 直接竞品的当前设计模式，2) 品类领导者的设计语言，3) 这个领域的新兴设计趋势，4) 要避免的反模式。浏览用户提供的截图来理解当前状态。
+> **翻译：** 使用 WebSearch 找到他们所在领域的 5-10 个产品。/ 研究的目标不是复制。是进入大致范围——理解该品类用户已经期望的视觉语言。这给你基线。有趣的设计工作在获得基线之后开始：决定在哪里遵循惯例（让产品显得懂行）以及在哪里打破惯例（让产品令人难忘）。
 
 **研究产出物：**
 
@@ -142,22 +142,22 @@ Phase 6: Write DESIGN.md & Confirm（写入设计系统文档并确认）
 
 **10 个审美方向（Aesthetic Directions）：**
 
-| # | 方向名 | 英文 | 描述 | 适合场景 |
+| # | 方向名 | 英文（源码原名） | 源码描述（逐字引用） | 适合场景 |
 |---|---|---|---|---|
-| 1 | 极简粗犷 | Brutally Minimal | 大量留白、极少装饰、高对比度、功能驱动 | 开发者工具、专业 SaaS |
-| 2 | 极繁混沌 | Maximalist Chaos | 大胆配色、不对称布局、密集信息、视觉冲击 | 创意工具、年轻消费者 app |
-| 3 | 复古未来 | Retro-Futuristic | 单色屏幕美学、绿字黑底、像素字体混搭现代布局 | 技术品牌、黑客工具 |
-| 4 | 奢华精致 | Luxury/Refined | 大量留白、衬线字体、低饱和度、微妙动画 | 高端产品、金融服务 |
-| 5 | 有机温暖 | Organic Warm | 暖色调、圆角、手绘元素、友好插图 | 健康、教育、社区 |
-| 6 | 工程精密 | Engineering Precision | 网格严格、等宽字体、数据密集、仪表盘思维 | 分析平台、基础设施工具 |
-| 7 | 柔和中性 | Soft Neutral | 低对比度、柔和色调、大字号、舒适间距 | 生产力工具、笔记应用 |
-| 8 | 玻璃态模糊 | Glass Morphism | 半透明层、模糊背景、光影效果 | 消费者应用、音乐/媒体 |
-| 9 | 新闻编辑 | Editorial | 报刊版式、大标题、多栏排版、黑白 + 单一强调色 | 内容平台、博客、媒体 |
-| 10 | 赛博像素 | Cyber Pixel | 像素艺术混搭矢量、8-bit 配色、网格对齐 | 游戏、Web3、独立开发者 |
+| 1 | 极简粗犷 | Brutally Minimal | Type and whitespace only. No decoration. Modernist. | 开发者工具、专业 SaaS |
+| 2 | 极繁混沌 | Maximalist Chaos | Dense, layered, pattern-heavy. Y2K meets contemporary. | 创意工具、年轻消费者 app |
+| 3 | 复古未来 | Retro-Futuristic | Vintage tech nostalgia. CRT glow, pixel grids, warm monospace. | 技术品牌、黑客工具 |
+| 4 | 奢华精致 | Luxury/Refined | Serifs, high contrast, generous whitespace, precious metals. | 高端产品、金融服务 |
+| 5 | 活泼/玩具感 | Playful/Toy-like | Rounded, bouncy, bold primaries. Approachable and fun. | 儿童应用、休闲产品 |
+| 6 | 新闻编辑 | Editorial/Magazine | Strong typographic hierarchy, asymmetric grids, pull quotes. | 内容平台、博客、媒体 |
+| 7 | 粗犷/原始 | Brutalist/Raw | Exposed structure, system fonts, visible grid, no polish. | 实验性项目、个人网站 |
+| 8 | 装饰艺术 | Art Deco | Geometric precision, metallic accents, symmetry, decorative borders. | 奢侈品、活动网站 |
+| 9 | 有机/自然 | Organic/Natural | Earth tones, rounded forms, hand-drawn texture, grain. | 健康、教育、社区 |
+| 10 | 工业/实用 | Industrial/Utilitarian | Function-first, data-dense, monospace accents, muted palette. | 分析平台、基础设施工具 |
 
-> **原文：** "These are starting points, not boxes. Most products blend 2-3 directions. Present them as a palette the user can mix from, not a multiple-choice quiz."
->
-> **翻译：** 这些是起点，不是框。大多数产品混合 2-3 个方向。把它们当作用户可以混搭的调色板来呈现，而不是单选题。
+注意：源码的 10 个审美方向与此前版本有显著差异。此前版本中的"工程精密"、"柔和中性"、"玻璃态模糊"、"赛博像素"均不在源码中。源码使用的是 Playful/Toy-like、Brutalist/Raw、Art Deco、Industrial/Utilitarian。
+
+> **源码指导（Phase 3 部分）：** 源码标注审美方向为 "pick the one that fits the product"（选择适合产品的那个），但在 Phase 3 提案模板中展示为完整的一揽子方案，包含 AESTHETIC、DECORATION、LAYOUT、COLOR、TYPOGRAPHY、SPACING、MOTION 七个维度。源码没有"These are starting points, not boxes..."这段引文，但设计意图是类似的。
 
 **SAFE vs RISK 分解表：**
 

@@ -2,7 +2,7 @@
 
 > **角色：** CEO / 创始人模式
 > **定位：** 重新思考问题，找到 10 星产品，挑战前提假设
-> **Prompt 长度：** ~600 行 | **allowed-tools：** Read, Grep, Glob, Bash, AskUserQuestion
+> **Prompt 长度：** ~663 行 | **allowed-tools：** Read, Grep, Glob, Bash, AskUserQuestion
 > **来源：** `plan-ceo-review/SKILL.md.tmpl`
 
 ---
@@ -15,7 +15,7 @@
 
 1. **定义审查姿态（Posture），而非审查内容** — 告诉 AI "你不是来盖橡皮章的"，而不是"检查这 10 个指标"
 2. **使用领域无关的元问题** — "这是对的问题吗？" "如果什么都不做会怎样？" 这些问题对任何领域都有效
-3. **提供不可跳过的完整流程** — 10 个审查环节的工程术语会被 Claude 自动迁移到输入的领域
+3. **提供不可跳过的完整流程** — 11 个审查环节（10 + 1 条件触发）的工程术语会被 Claude 自动迁移到输入的领域
 
 **核心洞察：** Prompt 的最高形态不是给 AI 更多领域知识，而是给 AI 正确的行为框架，让它自己调用已有的海量知识。
 
@@ -86,7 +86,7 @@ at the highest possible standard.
 | HOLD SCOPE | You are a rigorous reviewer. The plan's scope is accepted. Your job is to make it bulletproof. Do not silently reduce OR expand. | 你是一个严谨的审查者。计划的范围已被接受。你的工作是让它防弹。不要悄悄缩小，也不要悄悄扩大。 | 防弹衣制造商 |
 | SCOPE REDUCTION | You are a surgeon. Find the minimum viable version that achieves the core outcome. Cut everything else. Be ruthless. | 你是一个外科医生。找到能实现核心成果的最小可行版本。砍掉其他所有东西。要狠。 | 外科医生 |
 
-**第五条隐含姿态 — COMPLETENESS IS CHEAP（完整性很廉价）：**
+**第五条跨模式姿态 — COMPLETENESS IS CHEAP（完整性很廉价）：**
 
 > **原文：** "AI coding compresses implementation time 10-100x. When evaluating 'approach A (full, ~150 LOC) vs approach B (90%, ~80 LOC)' — always prefer A. The 70-line delta costs seconds with CC. 'Ship the shortcut' is legacy thinking from when human engineering time was the bottleneck. Boil the lake."
 >
