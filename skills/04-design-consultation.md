@@ -383,9 +383,9 @@ Consider converting one RISK to SAFE if coherence suffers.
 
 在用户做出所有 SAFE/RISK 选择后，`/design-consultation` 会做一次整体连贯性检查：
 
-> **原文：** "After all choices are made, step back and evaluate the ensemble. Does it tell a coherent story? A design that's Brutally Minimal in layout but Maximalist Chaos in color is probably incoherent — unless the user can articulate why. When you detect a mismatch, nudge gently: explain the tension, suggest a resolution, but let the user decide."
+> **源码示例（Coherence Validation）：** 源码提供了具体的不匹配示例和处理方式，如 "Brutalist/Minimal aesthetic + expressive motion → 'Heads up: brutalist aesthetics usually pair with minimal motion. Your combo is unusual — which is fine if intentional. Want me to suggest motion that fits, or keep it?'" 以及 "Always accept the user's final choice. Never refuse to proceed."
 >
-> **翻译：** 所有选择做完后，退一步评估整体。它讲的是一个连贯的故事吗？一个在布局上极简粗犷但配色上极繁混沌的设计很可能是不连贯的——除非用户能说清楚为什么。当你检测到不匹配时，温柔地提醒：解释张力所在，建议解决方案，但让用户决定。
+> **翻译：** 粗犷/极简审美 + 表现力动效 → "提醒：粗犷美学通常搭配极简动效。你的组合不常见——如果是有意的那没问题。要我建议适配的动效，还是保持现状？" / 永远接受用户的最终选择。永远不拒绝继续。
 
 **连贯性检查的输出格式：**
 
