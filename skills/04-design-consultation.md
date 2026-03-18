@@ -2,7 +2,7 @@
 
 > **角色：** Design Partner / 设计伙伴模式
 > **定位：** 从零构建完整设计系统，研究竞品，提出安全与冒险选择，输出 DESIGN.md
-> **Prompt 长度：** ~550 行 | **allowed-tools：** Read, Grep, Glob, Bash, Edit, Write, WebSearch, AskUserQuestion
+> **Prompt 长度：** ~361 行 | **allowed-tools：** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, WebSearch
 > **来源：** `design-consultation/SKILL.md.tmpl`
 
 ---
@@ -19,9 +19,11 @@
 
 大多数人向 AI 要设计建议时，得到的是一堆"你可以考虑..."的建议。`/design-consultation` 不同——它有 6 个明确的阶段，从环境检测到最终输出，每一步都有具体的产出物。
 
-> **原文：** "This is not a brainstorming session. This is a structured design process with concrete deliverables at every stage. You will research, propose, validate, and document — in that order."
+> **原文：** "You are a senior product designer with strong opinions about typography, color, and visual systems. You don't present menus — you listen, think, research, and propose. You're opinionated but not dogmatic." / "Your posture: Design consultant, not form wizard."
 >
-> **翻译：** 这不是一个头脑风暴会议。这是一个有结构的设计流程，每个阶段都有具体的交付物。你将研究、提案、验证、记录——按照这个顺序。
+> **翻译：** 你是一位对字体、色彩和视觉系统有强烈观点的资深产品设计师。你不展示菜单——你倾听、思考、研究、提案。你有主见但不教条。/ 你的姿态：设计顾问，不是表单向导。
+>
+> 注意：源码中没有"This is not a brainstorming session..."这段引文。源码的定位更强调"顾问 vs 表单向导"的对比。
 
 ### 第二：它把每个选择分为 SAFE 和 RISK
 
@@ -29,9 +31,9 @@
 - **SAFE 选择：** 这个品类的基线选择。不会出错，但也不会让你脱颖而出
 - **RISK 选择：** 有辨识度的选择。可能不是所有人都喜欢，但它让你的产品有记忆点
 
-> **原文：** "SAFE is not boring. SAFE is category baseline — the choice that users expect and won't notice. RISK is where the product stands out — the choice that some users will love and others might question. A great product is mostly SAFE with 2-3 deliberate RISKs."
+> **原文（Phase 3 提案模板 + 指导说明）：** "SAFE CHOICES (category baseline — your users expect these)" / "The SAFE/RISK breakdown is critical. Design coherence is table stakes — every product in a category can be coherent and still look identical. The real question is: where do you take creative risks? The agent should always propose at least 2 risks, each with a clear rationale for why the risk is worth taking and what the user gives up."
 >
-> **翻译：** SAFE 不是无聊。SAFE 是品类基线——用户期望的、不会注意到的选择。RISK 是产品脱颖而出的地方——有些用户会喜欢、其他人可能质疑的选择。一个伟大的产品大部分是 SAFE，加上 2-3 个刻意的 RISK。
+> **翻译：** SAFE 选择（品类基线——你的用户期望这些）/ SAFE/RISK 分解至关重要。设计连贯性只是入门门槛——品类中的每个产品都可以连贯但看起来一模一样。真正的问题是：你在哪里承担创意风险？Agent 应该至少提出 2 个风险，每个都有清晰的理由说明为什么值得承担以及用户放弃了什么。
 
 这个框架的威力在于：它把模糊的"大胆还是保守"变成了**每个维度上的独立决策**。你可以在字体上 SAFE、在配色上 RISK、在布局上 SAFE——而不是整体风格的"大胆"或"保守"。
 
@@ -45,24 +47,26 @@
 
 ## 二、完整结构拆解
 
-### 2.1 六个阶段概览
+### 2.1 七个阶段概览（Phase 0-6）
 
 ```
-Phase 1: Pre-checks（前置检查）
-  ↓ 读取项目上下文、现有设计、技术栈
-Phase 2: Product Context（产品上下文）
+Phase 0: Pre-checks（前置检查）
+  ↓ 检查现有 DESIGN.md、读取代码库上下文、查找 brainstorm 产出
+Phase 1: Product Context（产品上下文）
   ↓ 理解产品是什么、为谁、解决什么问题
-Phase 3: Research（研究）
-  ↓ WebSearch 竞品、浏览截图、识别品类基线
-Phase 4: Complete Proposal（完整提案）
-  ↓ SAFE/RISK 分解、10 个审美方向
-Phase 5: Drill-downs（深度钻取）
+Phase 2: Research（研究 — 仅当用户同意时）
+  ↓ WebSearch 竞品、浏览截图（如有 browse 工具）、识别品类基线
+Phase 3: Complete Proposal（完整提案）
+  ↓ SAFE/RISK 分解、审美方向
+Phase 4: Drill-downs（深度钻取 — 仅当用户请求调整时）
   ↓ 逐维度确认、连贯性检查
-Phase 6: Preview Page + Write DESIGN.md
-  ↓ 生成预览页面、写入设计系统文档
+Phase 5: Font & Color Preview Page（字体/色彩预览页）
+  ↓ 生成 HTML 预览页面并在浏览器中打开
+Phase 6: Write DESIGN.md & Confirm（写入设计系统文档并确认）
+  ↓ 写入 DESIGN.md + 更新 CLAUDE.md
 ```
 
-### 2.2 Phase 1：Pre-checks（前置检查）
+### 2.2 Phase 0：Pre-checks（前置检查）
 
 > **原文：** "Before you design anything, understand what exists. Read the codebase. Find existing CSS, design tokens, component libraries. If there's a DESIGN.md, read it. If there's a Tailwind config, that IS the design system."
 >
@@ -84,7 +88,7 @@ Phase 6: Preview Page + Write DESIGN.md
 
 **迁移价值：** 任何创意类 Skill 都应该以"理解现有上下文"开始，而不是直接跳入创作。上下文理解越深，建议越相关。
 
-### 2.3 Phase 2：Product Context（产品上下文）
+### 2.3 Phase 1：Product Context（产品上下文）
 
 > **原文：** "Ask the user, don't assume. What is this product? Who uses it? What's the core task? What's the emotional tone — playful, professional, urgent, calming? What competitors exist?"
 >
@@ -103,7 +107,7 @@ Phase 6: Preview Page + Write DESIGN.md
 | 竞品 | 决定 SAFE 基线和 RISK 方向 |
 | 品牌约束 | 已有 logo？品牌色？品牌指南？ |
 
-### 2.4 Phase 3：Research（研究 — WebSearch + 截图浏览）
+### 2.4 Phase 2：Research（研究 — WebSearch + 截图浏览，仅当用户同意时）
 
 这是 `/design-consultation` 独有的阶段——它做真正的研究，而不是依赖训练数据中的静态知识。
 
@@ -132,7 +136,7 @@ Phase 6: Preview Page + Write DESIGN.md
 
 没有研究的设计建议是基于 Claude 训练数据中的统计分布——也就是"所有设计的平均值"。平均值就是 AI Slop。**研究把基线从"所有设计的平均"收窄到"这个品类的当前状态"**，让 SAFE 和 RISK 的判断都建立在具体的市场环境上。
 
-### 2.5 Phase 4：Complete Proposal（完整提案 — SAFE/RISK 分解）
+### 2.5 Phase 3：Complete Proposal（完整提案 — SAFE/RISK 分解）
 
 这是整个 Skill 的核心产出阶段。
 
@@ -180,9 +184,9 @@ Phase 6: Preview Page + Write DESIGN.md
 
 ### 2.6 Coherence-First 哲学（连贯性优先）
 
-> **原文：** "A design with 3 RISK choices that cohere is infinitely better than a design with 7 RISK choices that clash. When you detect a mismatch — say, a playful font paired with a clinical color palette — nudge gently. Don't block. Explain the tension and let the user decide."
+> **原文（Coherence Validation 部分 + Important Rules 第 3 条）：** "When the user overrides one section, check if the rest still coheres. Flag mismatches with a gentle nudge — never block." / "Coherence over individual choices. A design system where every piece reinforces every other piece beats a system with individually 'optimal' but mismatched choices."
 >
-> **翻译：** 一个有 3 个连贯的 RISK 选择的设计，无限好于一个有 7 个冲突的 RISK 选择的设计。当你检测到不匹配——比如一个活泼的字体搭配了一个冷淡的配色——温柔地提醒。不要阻止。解释张力所在，让用户决定。
+> **翻译：** 当用户修改一个部分时，检查其余是否仍然连贯。用温柔的提醒标记不匹配——永远不阻止。/ 连贯性优于个别选择。每个部分互相强化的设计系统胜过单个"最优"但不匹配的选择。
 
 **连贯性检查矩阵：**
 
@@ -212,22 +216,30 @@ B) 让字体方向和配色对齐（都现代 或 都古典）
 
 ### 2.7 字体黑名单与过度使用警告
 
-> **原文：** "FONT BLACKLIST — never recommend: Papyrus, Comic Sans, Lobster, Bleeding Cowboys, Curlz MT, Jokerman, Brush Script. These fonts have no appropriate use case in modern digital product design."
+> **原文：** "Font blacklist (never recommend): Papyrus, Comic Sans, Lobster, Impact, Jokerman, Bleeding Cowboys, Permanent Marker, Bradley Hand, Brush Script, Hobo, Trajan, Raleway, Clash Display, Courier New (for body)"
 >
-> **翻译：** 字体黑名单——永远不要推荐：Papyrus、Comic Sans、Lobster、Bleeding Cowboys、Curlz MT、Jokerman、Brush Script。这些字体在现代数字产品设计中没有适当的使用场景。
+> **翻译：** 字体黑名单（永远不推荐）：Papyrus、Comic Sans、Lobster、Impact、Jokerman、Bleeding Cowboys、Permanent Marker、Bradley Hand、Brush Script、Hobo、Trajan、Raleway、Clash Display、Courier New（用作正文时）。
+>
+> 注意：源码的黑名单比此前版本列出的要长得多（14 个 vs 7 个），且包含 Raleway（因为被滥用的超细字重）和 Clash Display。Curlz MT 不在源码黑名单中。
 
-**过度使用字体警告：**
+**过度使用字体（源码完整清单）：**
 
-| 字体 | 状态 | 原因 |
+| 字体 | 状态 | 备注 |
 |---|---|---|
-| Montserrat | ⚠️ 过度使用 | 每个 AI 生成的网站都在用。辨识度已归零 |
-| Poppins | ⚠️ 过度使用 | Canva 模板的默认字体。看到就联想到模板 |
-| Playfair Display | ⚠️ 过度使用 | 所有"高端感"模板的首选。已成为"假高端"的信号 |
-| Raleway | ⚠️ 过度使用 | 超细字重被滥用，可读性差，已成为 2016 年的信号 |
+| Inter | ⚠️ 过度使用 | 源码明确列为过度使用，永远不推荐作为主字体 |
+| Roboto | ⚠️ 过度使用 | Google 默认字体，辨识度极低 |
+| Arial | ⚠️ 过度使用 | 系统默认字体 |
+| Helvetica | ⚠️ 过度使用 | 经典但在数字产品中过于泛滥 |
+| Open Sans | ⚠️ 过度使用 | Google Fonts 早期最流行字体 |
+| Lato | ⚠️ 过度使用 | 早期 Google Fonts 热门 |
+| Montserrat | ⚠️ 过度使用 | AI 生成网站大量使用 |
+| Poppins | ⚠️ 过度使用 | 模板和 Canva 的常见默认 |
 
-> **原文：** "Overused fonts are not bad fonts. But using them signals 'I didn't make a deliberate choice.' If the user wants Montserrat, don't block — but mention that it's heavily used and suggest 2-3 alternatives with similar characteristics."
+注意：Raleway 在源码中被放入了**黑名单**（完全禁止），而非过度使用列表。Playfair Display 不在源码的任何列表中。源码规则是 "never recommend as primary — use only if user specifically requests"（永远不推荐作为主字体——仅在用户明确要求时使用）。
+
+> **原文（Important Rules 第 4 条）：** "Never recommend blacklisted or overused fonts as primary. If the user specifically requests one, comply but explain the tradeoff."
 >
-> **翻译：** 过度使用的字体不是坏字体。但使用它们传递的信号是"我没有做过深思熟虑的选择"。如果用户想要 Montserrat，不要阻止——但提到它被大量使用，并建议 2-3 个特征相似的替代方案。
+> **翻译：** 永远不推荐黑名单或过度使用的字体作为主字体。如果用户明确要求，遵从但解释权衡。
 
 **替代建议逻辑：**
 
@@ -249,9 +261,9 @@ D) 看其他选项
 
 ### 2.8 AI Slop 反模式
 
-> **原文：** "AI slop in design is the visual equivalent of 'In today's fast-paced world...' in writing. It's the path of least resistance — statistically most common, aesthetically most forgettable."
+> **源码实际内容（AI slop anti-patterns 部分）：** 源码直接列出了 7 个 AI slop 反模式："Purple/violet gradients as default accent / 3-column feature grid with icons in colored circles / Centered everything with uniform spacing / Uniform bubbly border-radius / Gradient buttons as primary CTA / Generic stock-photo-style hero sections / 'Built for X' / 'Designed for Y' marketing copy patterns"。
 >
-> **翻译：** 设计中的 AI 垃圾就像写作中的"在当今快节奏的世界中..."。它是阻力最小的路径——统计上最常见，审美上最容易被遗忘。
+> 注意：源码中没有"AI slop in design is the visual equivalent of..."这段哲学性引文。源码风格更直接——列出具体的反模式清单，不做文学化描述。
 
 **完整的 AI Slop 反模式清单：**
 
@@ -270,13 +282,11 @@ D) 看其他选项
 
 **检测 AI Slop 的快速测试：**
 
-> **原文：** "The screenshot test: Take a screenshot of the design. Remove the logo and product name. Can you still tell which product this is? If not, it's slop."
->
-> **翻译：** 截图测试：截一张设计的图。删掉 logo 和产品名。你还能分辨这是哪个产品吗？如果不能，那就是垃圾。
+> 注意：源码中没有"截图测试"这段引文。这是对 AI Slop 概念的合理延伸总结，但并非原文。源码的反 Slop 策略是通过具体的反模式清单和 "No AI slop in your own output" 规则来实现的。
 
-### 2.9 Phase 5 & 6：Preview Page 与 DESIGN.md 输出
+### 2.9 Phase 4-6：Drill-downs、Preview Page 与 DESIGN.md 输出
 
-**Phase 5：Drill-downs（深度钻取）**
+**Phase 4：Drill-downs（深度钻取 — 仅当用户请求调整时）**
 
 在用户对 SAFE/RISK 做出选择后，`/design-consultation` 会对每个关键维度做深度钻取：
 
@@ -289,11 +299,11 @@ D) 看其他选项
 - 配对方案（标题字体 + 正文字体的组合效果）
 ```
 
-**Phase 6a：Preview Page（预览页面）**
+**Phase 5：Font & Color Preview Page（预览页面 — 默认开启）**
 
-> **原文：** "Build a realistic preview. Not color swatches and font samples — a real page. If it's a SaaS product, build a dashboard preview. If it's a marketing site, build a hero section with real content. The user needs to SEE the design in context, not imagine it."
+> **原文（Phase 5, Preview Page Requirements 第 6 条）：** "Realistic product mockups — this is what makes the preview page powerful. Based on the project type from Phase 1, render 2-3 realistic page layouts using the full design system: Dashboard / web app: sample data table with metrics [...] The user should see their product (roughly) before writing any code."
 >
-> **翻译：** 构建一个现实的预览。不是色板和字体样本——一个真实的页面。如果是 SaaS 产品，构建一个仪表盘预览。如果是营销网站，构建一个有真实内容的 hero 区域。用户需要在上下文中看到设计，而不是想象它。
+> **翻译：** 现实的产品模型——这是预览页面强大的原因。基于 Phase 1 的项目类型，用完整的设计系统渲染 2-3 个现实的页面布局：仪表盘/Web 应用：带指标的示例数据表 [...] 用户应该在写任何代码之前（大致）看到他们的产品。
 
 **预览页面的类型映射：**
 
@@ -316,7 +326,7 @@ D) 看其他选项
 
 预览页面就是这种"深刻理解"的体现——只有当设计放在真实的产品上下文中时，你才能评判它是否"简洁"还是"空洞"。
 
-**Phase 6b：Write DESIGN.md**
+**Phase 6：Write DESIGN.md & Confirm**
 
 最终产出是一个完整的 DESIGN.md 文件，写入项目根目录：
 

@@ -2,7 +2,7 @@
 
 > **角色：** Release Engineer / 发布工程师模式
 > **定位：** 全自动化发布流水线——从测试到 PR 创建，中间只在必要时停下
-> **Prompt 长度：** ~609 行（gstack 最长模板） | **allowed-tools：** Read, Grep, Glob, Bash, Edit, Write, AskUserQuestion
+> **Prompt 长度：** ~609 行（gstack 最长模板） | **allowed-tools：** Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, WebSearch
 > **来源：** `ship/SKILL.md.tmpl`
 
 ---
@@ -13,15 +13,16 @@
 
 这个 Skill 有效的原因不是它自动化了多少步骤——而是它**精确定义了什么时候必须停下来**：
 
-1. **基础分支确认** — 发布到错误的分支是不可逆的
-2. **合并冲突** — 冲突解决需要业务判断
+1. **在基础分支上** — 直接中止，不是发布分支
+2. **合并冲突** — 简单冲突（VERSION、schema.rb、CHANGELOG 排序）自动解决；复杂冲突停下来
 3. **测试失败** — 失败原因需要人类诊断
 4. **ASK 审查项目** — 来自内嵌的 /review 流程
 5. **MINOR/MAJOR 版本升级** — 语义化版本的公共 API 契约
-6. **Greptile 决策** — 来自外部审查工具的问题
-7. **TODOS.md 缺失** — 技术债务登记簿不存在时需要确认
+6. **Greptile 决策** — 来自外部审查工具的复杂修复或假阳性
+7. **TODOS.md 缺失** — 技术债务登记簿不存在时需要确认是否创建
+8. **TODOS.md 结构混乱** — 不符合推荐结构时询问是否重组
 
-除了这七个停止点之外，/ship **完全自主运行**。它不会问"要我运行测试吗？"——它直接运行。它不会问"要我生成 CHANGELOG 吗？"——它直接生成。
+除了这八个停止点之外，/ship **完全自主运行**。它不会问"要我运行测试吗？"——它直接运行。它不会问"要我生成 CHANGELOG 吗？"——它直接生成。
 
 **核心洞察：** 自动化的最高形态不是"全自动"（那叫脚本），而是"在精确的时机交还控制权"。/ship 知道自己什么时候需要人类，什么时候不需要——这让它既安全又高效。
 
@@ -36,62 +37,79 @@
 
 ## 二、完整结构拆解
 
-### 2.1 整体架构：七阶段流水线
+### 2.1 整体架构：八阶段流水线
 
-/ship 的执行流程分为七个大阶段，每个阶段内部又有多个子步骤。这是 gstack 中最具工程感的 Skill——它不像 /plan-ceo-review 那样是思维框架，它是一条**真正的发布流水线**。
+/ship 的执行流程分为八个大步骤（源模板编号为 Steps 1-8，含多个子步骤如 2.5、3.25、3.4、3.5、3.75、5.5）。这是 gstack 中最具工程感的 Skill——它不像 /plan-ceo-review 那样是思维框架，它是一条**真正的发布流水线**。
 
 ```
-阶段 1: Pre-flight（预检）
+Step 1: Pre-flight（预检 + 审查仪表盘）
     ↓
-阶段 2: Merge Base（合并基准分支）
+Step 2: Merge Base（合并基准分支）
+  Step 2.5: Test Bootstrap（测试框架引导）
     ↓
-阶段 3: Test & Coverage（测试 + 覆盖率审计）
+Step 3: Run Tests（运行测试）
+  Step 3.25: Eval Suites（条件：仅 prompt 变更）
+  Step 3.4: Test Coverage Audit（测试覆盖率审计）
+  Step 3.5: Pre-Landing Review（上线前审查）
+  Step 3.75: Greptile Review（条件：PR 存在时）
     ↓
-阶段 4: Pre-landing Review（上线前审查）
+Step 4: Version Bump（版本号）
     ↓
-阶段 5: Version & CHANGELOG（版本号 + 变更日志）
+Step 5: CHANGELOG（变更日志）
+  Step 5.5: TODOS.md（技术债务管理）
     ↓
-阶段 6: TODOS.md（技术债务管理）
+Step 6: Commit（可二分提交）
     ↓
-阶段 7: Commit & PR（提交 + 创建 PR）
+Step 7: Push（推送）
+    ↓
+Step 8: Create PR（创建 PR）
 ```
 
 ### 2.2 阶段 1：Pre-flight（预检）
 
-**原文：**
+**原文（Step 1: Pre-flight）：**
 ```
-Pre-flight checks:
-1. Check review dashboard for blocking issues
-2. Verify clean working tree
-3. Identify base branch
-4. Confirm no uncommitted changes
+1. Check the current branch. If on the base branch or the repo's default branch,
+   abort: "You're on the base branch. Ship from a feature branch."
+2. Run `git status` (never use `-uall`). Uncommitted changes are always
+   included — no need to ask.
+3. Run `git diff <base>...HEAD --stat` and `git log <base>..HEAD --oneline`
+   to understand what's being shipped.
+4. Check review readiness: {{REVIEW_DASHBOARD}}
 ```
 
 **中文翻译：**
 预检：
-1. 检查审查仪表盘是否有阻塞问题
-2. 验证工作区干净
-3. 识别基础分支
-4. 确认没有未提交的变更
+1. 检查当前分支。如果在基础分支上，中止
+2. 运行 git status。未提交的变更总是被包含——不需要问
+3. 运行 git diff 和 git log 了解要发布的内容
+4. 检查审查就绪度（通过审查仪表盘）
 
 **设计原理分析：**
 
-Pre-flight 的第一步不是检查代码——而是**检查审查仪表盘**。这意味着 /ship 不是独立运行的，它是 gstack 工作流的下游消费者。如果之前的 /review 留下了未解决的阻塞问题，/ship 不会继续。
+两个关键设计决策值得注意：
 
-这种"流程间依赖"的设计确保了发布不会绕过审查。在很多团队中，"来不及审查就先发了"是事故的主要来源。/ship 通过把审查检查嵌入预检阶段，从架构上杜绝了这种绕行。
+第一，**未提交的变更总是被包含**——不停下来问"要先提交吗？"。这是非交互哲学的体现。
+
+第二，Step 4 的**审查仪表盘检查**确保发布不会绕过审查。如果工程审查（Eng Review）未通过，/ship 会给用户三个选择：A）直接发布，B）中止去跑 /plan-eng-review，C）变更太小不需要审查。选择 A 或 C 会被持久化，同分支后续 /ship 不会再问。
 
 ### 2.3 阶段 2：Merge Base（合并基准分支）
 
-**原文：**
+**原文（Step 2）：**
 ```
-Merge base branch into current branch. If conflicts arise, STOP and
-present conflicts to user for resolution.
+git fetch origin <base> && git merge origin/<base> --no-edit
+
+If there are merge conflicts: Try to auto-resolve if they are simple
+(VERSION, schema.rb, CHANGELOG ordering). If conflicts are complex or
+ambiguous, STOP and show them.
+
+If already up to date: Continue silently.
 ```
 
 **中文翻译：**
-将基础分支合并到当前分支。如果出现冲突，停下来并向用户展示冲突以供解决。
+拉取并合并基础分支。如果有冲突：简单冲突（VERSION、schema.rb、CHANGELOG 排序）尝试自动解决。复杂或模糊的冲突停下来展示。
 
-这是七个停止点之一。合并冲突不能自动解决，因为冲突的两侧代码各自的意图需要人类判断。
+注意：这不是一刀切地"有冲突就停"。简单冲突（如版本号冲突——两边都递增了版本号）有明确的解决方式，可以自动化。只有需要业务判断的冲突才停下来。
 
 ### 2.4 阶段 3：测试 + 覆盖率审计（最复杂的阶段）
 
@@ -132,20 +150,34 @@ Do not attempt to fix failing tests automatically.
 
 **Step 3.3：Eval Suites（仅 Prompt 变更时）**
 
-**原文：**
+**原文（Step 3.25: Eval Suites）：**
 ```
-If the diff contains prompt changes, run eval suites. Prompt changes without
-eval results are not shippable.
+Evals are mandatory when prompt-related files change. Skip this step entirely
+if no prompt files are in the diff.
+
+Check if the diff touches prompt-related files:
+- app/services/*_prompt_builder.rb
+- app/services/*_generation_service.rb, *_writer_service.rb, *_designer_service.rb
+- config/system_prompts/*.txt
+- test/evals/**/*
+... (more patterns)
+
+/ship is a pre-merge gate, so always use full tier (Sonnet structural +
+Opus persona judges).
 ```
 
 **中文翻译：**
-如果 diff 包含 prompt 变更，运行评估套件。没有评估结果的 prompt 变更不可发布。
+当 prompt 相关文件变更时，eval 是强制性的。如果 diff 中没有 prompt 文件则完全跳过。/ship 作为合并前的门控，总是使用 full tier（Sonnet 结构化 + Opus 角色评委）。
 
 **设计原理分析：**
 
-这条规则反映了一个 AI 时代的新现实：**Prompt 变更和代码变更一样需要测试，但需要不同类型的测试。** 单元测试不能验证 prompt 的效果——你需要运行 eval suite（评估套件），用一组预定义的输入检查输出质量。
+这个步骤的精细度值得注意——它不是简单地"有 prompt 变更就跑全部 eval"，而是：
+1. 用文件路径模式精确识别 prompt 相关文件
+2. 通过 eval runner 中声明的 `PROMPT_SOURCE_FILES` 找到受影响的 eval 套件
+3. 顺序运行受影响的套件（不并行，因为每个需要 test lane）
+4. 第一个失败就停止——不浪费 API 费用
 
-"没有评估结果的 prompt 变更不可发布"是一条硬规则，和"没有测试的代码变更不可发布"同级。这在 2024-2025 年的 AI 工程实践中是前沿性的认知。
+三级 eval tier（fast/standard/full）的存在表明 eval 在开发过程中也被使用（fast tier 用于迭代，约 $0.07/次），但 /ship 强制使用 full tier（约 $1.27/次）。这在 AI 工程实践中是前沿性的认知——prompt 变更和代码变更一样需要测试，且发布前需要最严格的测试。
 
 **Step 3.4：测试覆盖率审计（最精心的子步骤）**
 
@@ -214,16 +246,25 @@ Test coverage audit:
 - ★☆☆ = 只有自动生成的 API 参考
 - ☆☆☆ = 无文档
 
-### 2.5 阶段 4：Pre-landing Review（上线前审查）
+### 2.5 Step 3.5：Pre-landing Review（上线前审查）
 
-**原文：**
+**原文（Step 3.5）：**
 ```
-Run pre-landing review using checklist and Greptile integration.
-This is a condensed version of /review embedded within /ship.
+Review the diff for structural issues that tests don't catch.
+1. Read `.claude/skills/review/checklist.md`. If unreadable, STOP.
+2. Run `git diff origin/<base>` for full diff.
+3. Apply checklist in two passes:
+   Pass 1 (CRITICAL): SQL & Data Safety, LLM Output Trust Boundary
+   Pass 2 (INFORMATIONAL): All remaining categories
+4. Classify each finding as AUTO-FIX or ASK per Fix-First Heuristic.
+5. Auto-fix all AUTO-FIX items.
+6. If ASK items remain, present in ONE AskUserQuestion.
+7. After all fixes: if ANY fixes applied, commit and STOP — tell user to
+   run /ship again to re-test.
 ```
 
 **中文翻译：**
-使用清单和 Greptile 集成运行上线前审查。这是嵌入在 /ship 中的精简版 /review。
+审查 diff 中测试无法捕获的结构性问题。使用 checklist.md 两轮审查。自动修复机械问题。如果有修复，提交后停止——让用户重新运行 /ship 以重新测试。
 
 **设计原理分析：**
 
@@ -231,7 +272,7 @@ This is a condensed version of /review embedded within /ship.
 
 这也意味着如果你之前已经运行过 /review 并修复了所有问题，这个阶段会快速通过。它不会重复之前的工作——它检查当前代码状态。
 
-### 2.6 阶段 5：版本号 + CHANGELOG
+### 2.6 Step 4 & 5：版本号 + CHANGELOG
 
 **版本号格式：**
 
@@ -259,14 +300,19 @@ This is a condensed version of /review embedded within /ship.
 
 **CHANGELOG 自动生成：**
 
-**原文：**
+**原文（Step 5）：**
 ```
-Auto-generate CHANGELOG from commit messages and PR descriptions.
-Group changes by: Added, Changed, Fixed, Removed, Security.
+Auto-generate the entry from ALL commits on the branch (not just recent ones).
+Categorize changes into applicable sections:
+  - ### Added — new features
+  - ### Changed — changes to existing functionality
+  - ### Fixed — bug fixes
+  - ### Removed — removed features
+Format: ## [X.Y.Z.W] - YYYY-MM-DD
 ```
 
 **中文翻译：**
-从提交信息和 PR 描述自动生成 CHANGELOG。按以下分组：新增、变更、修复、移除、安全。
+从分支上所有 commit 自动生成条目（不只是最近的）。按以下分组：Added（新增）、Changed（变更）、Fixed（修复）、Removed（移除）。格式：`## [X.Y.Z.W] - YYYY-MM-DD`。
 
 **设计原理分析：**
 
@@ -274,25 +320,36 @@ Group changes by: Added, Changed, Fixed, Removed, Security.
 
 分组方式遵循 [Keep a Changelog](https://keepachangelog.com/) 的标准格式。这不是随意选择——它是行业共识，意味着生成的 CHANGELOG 对任何开发者都是可读的。
 
-### 2.7 阶段 6：TODOS.md 管理
+### 2.7 Step 5.5：TODOS.md 管理
 
-**原文：**
+**原文（Step 5.5 摘要）：**
 ```
-Check TODOS.md. If it doesn't exist, STOP and ask if one should be created.
-Cross-reference completed TODO items with this release.
-Mark completed items. Flag items that should have been completed but weren't.
+1. Check if TODOS.md exists. If not: AskUserQuestion (Create/Skip).
+2. Check structure — if disorganized: AskUserQuestion (Reorganize/Leave).
+3. Detect completed TODOs (fully automatic — match commits/diff against items).
+   Be conservative: only mark if clear evidence in diff.
+4. Move completed items to ## Completed section.
+5. Output summary.
+6. Defensive: if write fails, warn and continue. Never stop ship for TODOS failure.
 ```
 
 **中文翻译：**
-检查 TODOS.md。如果不存在，停下来询问是否应该创建。将已完成的 TODO 项目与本次发布交叉参考。标记已完成的项目。标记应该已完成但未完成的项目。
+1. 检查 TODOS.md 是否存在。不存在则询问（创建/跳过）
+2. 检查结构——不符合推荐结构则询问（重组/保持原样）
+3. 自动检测已完成的 TODO（全自动，无用户交互）。保守策略：只在 diff 中有明确证据时才标记完成
+4. 将已完成项目移到 Completed 区
+5. 输出摘要
+6. 防御性设计：如果写入失败，警告并继续。绝不因 TODOS 失败而停止发布
 
 **设计原理分析：**
 
-TODOS.md 在 gstack 中扮演着"技术债务登记簿"的角色。/ship 在这里做的事情是**维护系统记忆**——确保团队承诺要做的事情不会被遗忘。
+TODOS.md 在 gstack 中扮演着"技术债务登记簿"的角色。Step 5.5 的设计体现了几个原则：
 
-"如果不存在就停下来询问"是一个有趣的设计选择。它没有自动创建——因为 TODOS.md 的存在与否反映了团队的工作方式。自动创建一个空的 TODOS.md 没有意义；询问用户给了团队选择的权利。
+- **分离自动和交互**：检测完成项是全自动的，但创建文件和重组结构需要询问
+- **保守标记**：只在有明确证据时才标记完成，避免误报
+- **防御性设计**：TODOS 是增值功能，不是核心功能——它的失败不应阻塞发布
 
-### 2.8 阶段 7：Bisectable Commits + Push + PR
+### 2.8 Steps 6-8：Bisectable Commits + Push + PR
 
 **Bisectable Commit 策略：**
 
@@ -373,48 +430,61 @@ Push to remote. Create PR with:
 
 **原文关键指令：**
 ```
-Only stop for: base branch confirmation, merge conflicts, test failures,
-ASK review items, MINOR/MAJOR version bumps, Greptile decisions,
-missing TODOS.md.
-Everything else: just do it.
+You are running the `/ship` workflow. This is a non-interactive, fully
+automated workflow. Do NOT ask for confirmation at any step. The user said
+`/ship` which means DO IT. Run straight through and output the PR URL at the end.
+
+Never stop for:
+- Uncommitted changes (always include them)
+- Version bump choice (auto-pick MICRO or PATCH)
+- CHANGELOG content (auto-generate from diff)
+- Commit message approval (auto-commit)
+...
+
+The goal is: user says `/ship`, next thing they see is the review + PR URL.
 ```
 
 **中文翻译：**
-只在以下情况停下：基础分支确认、合并冲突、测试失败、ASK 审查项目、MINOR/MAJOR 版本升级、Greptile 决策、TODOS.md 缺失。其他所有事情：直接做。
+你正在运行 /ship 工作流。这是一个非交互式、全自动化的工作流。任何步骤都不要请求确认。用户说了 /ship 就意味着去做。直接运行到底，最后输出 PR URL。
 
-"Everything else: just do it" 这五个词是整个 Skill 的灵魂。它把默认行为从"等待许可"翻转为"主动执行"。
+目标是：用户说 `/ship`，下一个看到的就是审查结果 + PR URL。
+
+这段描述是整个 Skill 的灵魂。它把默认行为从"等待许可"翻转为"主动执行"——只有那八个明确列出的停止点才允许打断流程。
 
 ### 2.10 流水线中各阶段的关系图
 
 ```
-Pre-flight ──→ 有阻塞问题？ ──→ [停止] 解决后重新开始
+Step 1: Pre-flight ──→ 在基础分支？ ──→ [中止]
+    │               ──→ 审查未通过？ ──→ [停止] 用户选择继续/中止
+    ↓
+Step 2: Merge Base ──→ 复杂冲突？ ──→ [停止] 用户解决
+    │                ──→ 简单冲突？ ──→ 自动解决
+    ↓
+Step 3: Run Tests ──→ 失败？ ──→ [停止] 展示失败
     │
-    ↓ 无阻塞
-Merge Base ──→ 有冲突？ ──→ [停止] 用户解决冲突
-    │
-    ↓ 无冲突
-Test Bootstrap → Run Tests ──→ 失败？ ──→ [停止] 展示失败
-    │                                        上下文
     ↓ 通过
-Eval Suites ──→ (仅 prompt 变更)
+Step 3.25: Eval Suites ──→ (仅 prompt 变更时)
     │
     ↓
-Coverage Audit ──→ ☆☆☆ 缺口？ ──→ 自动生成测试
+Step 3.4: Coverage Audit ──→ 自动生成测试
     │
     ↓
-Pre-landing Review ──→ ASK 项目？ ──→ [停止] 批量展示
+Step 3.5: Pre-landing Review ──→ ASK 项目？ ──→ [停止] 批量展示
+    │                          ──→ 有修复？ ──→ [停止] 让用户重跑 /ship
+    ↓
+Step 3.75: Greptile ──→ 需要决策？ ──→ [停止] 询问用户
     │
     ↓
-Version Bump ──→ MINOR/MAJOR？ ──→ [停止] 询问用户
-    │
-    ↓ PATCH/MICRO 自动
-CHANGELOG 自动生成
+Step 4: Version Bump ──→ MINOR/MAJOR？ ──→ [停止] 询问用户
+    │                 ──→ PATCH/MICRO → 自动
+    ↓
+Step 5: CHANGELOG 自动生成
     │
     ↓
-TODOS.md ──→ 不存在？ ──→ [停止] 询问是否创建
-    │
+Step 5.5: TODOS.md ──→ 不存在？ ──→ [停止] 询问是否创建
+    │               ──→ 结构混乱？ ──→ [停止] 询问是否重组
     ↓
-Bisectable Commits → Push → Create PR ──→ 完成
+Steps 6-8: Bisectable Commits → Push → Create PR ──→ 输出 PR URL
 ```
 
 ---
@@ -487,7 +557,7 @@ Bisectable Commits → Push → Create PR ──→ 完成
 ### 关键提取物（可复用到任何自动化流水线 Skill）
 
 1. **非交互为默认**：列出精确的停止点清单。清单之外的一切都自动执行。"Everything else: just do it" 应该是每个自动化 Skill 的座右铭
-2. **七个停止点原则**：只在"需要人类判断"的地方停下。判断标准是"结果是否可预测"——可预测就自动化，不可预测就询问
+2. **八个停止点原则**：只在"需要人类判断"的地方停下。判断标准是"结果是否可预测"——可预测就自动化，不可预测就询问
 3. **测试覆盖率不等于覆盖率数字**：用 ASCII 图展示路径，用星级评分替代百分比。粗粒度但更有用的信号
 4. **Bisectable commits**：按依赖图拓扑排序提交。每个中间状态都应该是可编译、可测试、可回滚的
 5. **嵌入式审查**：不要假设上游流程已经执行。在关键流程中嵌入精简版的审查步骤作为安全网

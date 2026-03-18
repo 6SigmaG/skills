@@ -1,9 +1,10 @@
 # /design-review 深度解构
 
-> **角色：** Designer Who Codes — 懂代码的设计师
-> **定位：** Live Site 视觉审计 + 逐项修复循环
-> **核心机制：** 80 项视觉审查清单、CSS-first 修复策略、原子提交、设计风险启发式、回归基线
-> **来源：** `design-review/SKILL.md.tmpl`
+> **角色：** Senior Product Designer AND Frontend Engineer — 资深产品设计师 + 前端工程师
+> **定位：** Live Site 视觉审计 + 逐项修复循环（Phases 1-11）
+> **核心机制：** 设计方法论（`{{DESIGN_METHODOLOGY}}` 共享模板）、CSS-first 修复策略、原子提交、设计风险启发式、回归基线
+> **allowed-tools：** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, WebSearch
+> **来源：** `design-review/SKILL.md.tmpl`（v2.0.0）
 
 ---
 
@@ -13,11 +14,13 @@
 
 这听起来很主观，但 gstack 把它变成了一个可重复的工程流程。关键在于三个设计决策：
 
-### 1. 80 项审查清单把"品味"变成了可检查的维度
+### 1. 结构化设计方法论把"品味"变成了可检查的维度
 
-"这个页面看起来不太对"是设计师的直觉。直觉无法教给 AI。但如果你把直觉拆成 80 个具体维度 — 间距一致性、字体层级、颜色对比度、响应式断点、hover 状态 — 每一项都变成了 AI 可以检查的二元判断。
+"这个页面看起来不太对"是设计师的直觉。直觉无法教给 AI。但源模板通过 `{{DESIGN_METHODOLOGY}}` 共享模板（Phases 1-6）将设计审计拆解成多个具体维度 — 间距一致性、字体层级、颜色对比度、响应式断点、hover 状态、AI 生成痕迹（AI slop）等 — 每一项都变成了 AI 可以检查的判断。
 
 **核心洞察：** 审美直觉不可迁移，但审美直觉的**分解清单**可以迁移。gstack 不是在教 AI 有品味，而是在给 AI 一张品味的检查清单。
+
+> 注意：具体的审查清单内容在 `{{DESIGN_METHODOLOGY}}` 共享模板中定义，此处不可见。文档中关于"80 项"的具体数量是基于模板展开后的估算。
 
 ### 2. CSS-first 修复策略把风险降到最低
 
@@ -31,10 +34,10 @@ JSX structure fix（改结构）→ 风险 +5%
 Component refactor（重构） → 风险 +15%
 ```
 
-**原文：**
-> "CSS-only changes carry zero regression risk. Prefer them overwhelmingly."
+**原文（Rule 16）：**
+> "Prefer CSS/styling changes over structural component changes. CSS-only changes are safer and more reversible."
 
-**翻译：** 纯 CSS 改动的回归风险为零。压倒性地优先选择它们。
+**翻译：** 优先选择 CSS/样式改动而非结构性组件改动。纯 CSS 改动更安全、更容易回滚。
 
 这不是随意的偏好 — 这是工程事实。CSS 改动不会影响组件的数据流、事件处理或状态管理。一个 `margin-top: 8px` 的改动不可能让登录功能失效。
 
@@ -79,9 +82,9 @@ style(design): FINDING-NNN — 修复描述
 └─────────────────────────────────────────────────────┘
 ```
 
-### 2.2 80 项审查清单的分类
+### 2.2 设计审查清单的分类
 
-清单不是随意罗列的 80 个点。它按照**视觉层级**从宏观到微观组织：
+设计方法论通过 `{{DESIGN_METHODOLOGY}}` 模板引入（具体内容在共享模板中，此处不可见）。根据模板结构推断，清单按照**视觉层级**从宏观到微观组织：
 
 | 层级 | 审查维度示例 | 数量（约） |
 |---|---|---|
@@ -101,31 +104,32 @@ style(design): FINDING-NNN — 修复描述
 这是 `/design-review` 最精妙的工程决策之一。它定义了一个**量化的风险评分体系**来决定"修还是不修"：
 
 ```
-基础风险分：
-  revert（回滚已有样式）   +15%
-  CSS-only（纯样式改动）    0%
-  JSX change（结构改动）   +5%
-
-累积因子：
-  >10 fixes in session     +1%（每多一个修复，风险递增）
-  unrelated file touched   +20%（碰了不相关文件）
+DESIGN-FIX RISK:
+  Start at 0%
+  Each revert:                        +15%
+  Each CSS-only file change:          +0%   (safe — styling only)
+  Each JSX/TSX/component file change: +5%   per file
+  After fix 10:                       +1%   per additional fix
+  Touching unrelated files:           +20%
 
 停止条件：
-  累积风险 > 20%           → 停止修复，报告剩余问题
-  硬上限 cap               → 30%（绝不超过）
+  累积风险 > 20%           → 立即停止，询问用户是否继续
+  硬上限                   → 30 个修复（不是 30%）
 ```
 
-**原文：**
-> "If cumulative risk exceeds 20%, stop fixing and switch to report-only mode. Hard cap at 30% — no exceptions."
+**原文（Phase 8f: Self-Regulation）：**
+> "If risk > 20%: STOP immediately. Show the user what you've done so far. Ask whether to continue. Hard cap: 30 fixes. After 30 fixes, stop regardless of remaining findings."
 
-**翻译：** 如果累积风险超过 20%，停止修复并切换到纯报告模式。硬上限 30% — 没有例外。
+**翻译：** 如果风险 > 20%：立即停止。向用户展示已完成的工作。询问是否继续。硬上限：30 个修复。30 个修复后，无论剩余发现如何，都停止。
+
+> 注意：硬上限是 **30 个修复**（次数），不是 30% 的风险值。这是两个独立的停止条件。
 
 **为什么这个启发式有效：**
 
 1. **CSS 0% 是有根据的** — 纯样式改动不触及逻辑，回归风险接近真正的零
 2. **revert +15% 看似反直觉** — 回滚一个样式应该更安全吧？不。revert 意味着你在撤销别人有意为之的设计决策，你可能不了解那个决策的上下文
 3. **累积因子防止"温水煮青蛙"** — 每个修复单独看都是低风险的，但 30 个低风险修复加在一起就是高风险。+1%/fix 的递增确保了这个累积效应被量化
-4. **硬上限 30% 是安全网** — 即使所有修复都是 CSS-only（每个 0%），30 个修复的累积因子也会触及停止条件
+4. **硬上限 30 个修复是安全网** — 即使所有修复都是 CSS-only（每个 0%），从第 10 个修复开始的 +1%/fix 递增确保了累积效应被量化，而 30 个修复的硬上限提供了绝对的安全网
 
 **迁移价值：** 这种"风险预算"模式可以复用到任何自动修复场景。关键是：给每种修复操作一个基础风险分，加上累积因子，设定停止条件和硬上限。
 
@@ -143,10 +147,10 @@ style(design): FINDING-044 — Add missing hover state on secondary CTA
 2. **可二分** — `git bisect` 可以精确定位哪个修复引入了新问题
 3. **可选择性回滚** — `git revert <FINDING-044-commit>` 只撤销那一个修复
 
-**原文：**
-> "Every fix is one commit. Every commit is one fix. No batching. No mixing. If you need to revert, you revert exactly one visual change."
+**原文（Phase 8c）：**
+> "One commit per fix. Never bundle multiple fixes. Message format: `style(design): FINDING-NNN — short description`"
 
-**翻译：** 每个修复一个 commit。每个 commit 一个修复。不合并。不混杂。如果需要回滚，你精确回滚一个视觉改动。
+**翻译：** 每个修复一个 commit。绝不把多个修复打包在一起。提交信息格式：`style(design): FINDING-NNN — 简短描述`。
 
 ### 2.5 Before/After 截图系统
 
@@ -209,18 +213,18 @@ style(design): FINDING-044 — Add missing hover state on secondary CTA
 | 设计师写代码 | "这个 padding 不一致" → 打开 CSS → 修成 8px 网格 | 发现问题并用设计思维修复 |
 
 **原文：**
-> "You are a designer who reads and writes CSS fluently. You see the page as a user sees it, and you fix it as an engineer fixes it."
+> "You are a senior product designer AND a frontend engineer. Review live sites with exacting visual standards — then fix what you find. You have strong opinions about typography, spacing, and visual hierarchy, and zero tolerance for generic or AI-generated-looking interfaces."
 
-**翻译：** 你是一个流利读写 CSS 的设计师。你以用户的视角看页面，以工程师的方式修复它。
+**翻译：** 你是一名资深产品设计师兼前端工程师。以严苛的视觉标准审查线上站点——然后修复你发现的问题。你对排版、间距和视觉层级有强烈观点，对通用或看起来像 AI 生成的界面零容忍。
 
 ### 为什么 CSS-first 而不是 component-first？
 
 很多开发者的本能反应是：既然要改界面，不如顺便重构组件。gstack 明确禁止这个冲动：
 
-**原文：**
-> "Do NOT refactor components during design review. Your job is visual fidelity, not architecture. A CSS fix that ships today beats a component refactor that ships next week."
+**原文（Phase 8b）：**
+> "Make the minimal fix — smallest change that resolves the design issue. CSS-only changes are preferred (safer, more reversible). Do NOT refactor surrounding code, add features, or 'improve' unrelated things."
 
-**翻译：** 设计审查时不要重构组件。你的工作是视觉保真度，不是架构。今天发布的 CSS 修复胜过下周发布的组件重构。
+**翻译：** 做最小的修复——解决设计问题的最小改动。纯 CSS 改动优先（更安全、更易回滚）。不要重构周围代码、添加功能，或"改善"无关的东西。
 
 这背后的工程逻辑是：
 1. CSS 改动的 blast radius（爆炸半径）最小
@@ -232,7 +236,7 @@ style(design): FINDING-044 — Add missing hover state on secondary CTA
 
 风险启发式的停止条件（>20% 停止，cap 30%）实际上是在跟 AI 的"完美主义倾向"做博弈。
 
-Claude 看到 80 个问题时的自然倾向是：全部修完。这在大多数场景下是好的（Boil the Lake 哲学），但在设计修复场景下是危险的 — 因为每个修复都在改变用户可见的界面，累积的视觉改动可能偏离原始设计意图。
+Claude 看到大量问题时的自然倾向是：全部修完。这在大多数场景下是好的（Boil the Lake 哲学），但在设计修复场景下是危险的 — 因为每个修复都在改变用户可见的界面，累积的视觉改动可能偏离原始设计意图。
 
 **停止条件的本质是：** 告诉 AI "你的完美主义在这里是危险的。修到够好就停。"
 
@@ -242,7 +246,7 @@ Claude 看到 80 个问题时的自然倾向是：全部修完。这在大多数
 
 ### 场景 1：自动化品牌一致性审查
 
-从 80 项清单中提取品牌相关维度（颜色、字体、Logo 使用），创建精简版 Skill：
+从设计审查清单中提取品牌相关维度（颜色、字体、Logo 使用），创建精简版 Skill：
 
 ```markdown
 # 品牌一致性审查
@@ -288,7 +292,7 @@ Claude 看到 80 个问题时的自然倾向是：全部修完。这在大多数
 
 ### 关键提取物（可复用到任何视觉审查类 Skill）
 
-1. **量化审查清单** — 把主观审美拆成可检查的二元维度
+1. **结构化审查清单** — 把主观审美拆成可检查的维度
 2. **修复优先级** — 低风险操作优先（CSS > JSX > 重构）
 3. **风险预算** — 基础分 + 累积因子 + 停止条件 + 硬上限
 4. **原子提交** — 每修一个问题提交一次，编号可追溯
@@ -297,4 +301,4 @@ Claude 看到 80 个问题时的自然倾向是：全部修完。这在大多数
 
 ---
 
-> 本分析基于 `/design-review` Skill 的核心机制拆解：80 项审查清单、CSS-first 修复策略、风险启发式、原子提交格式和 design-baseline.json 回归系统。
+> 本分析基于 `design-review/SKILL.md.tmpl`（v2.0.0）完整源码拆解。核心机制：`{{DESIGN_METHODOLOGY}}` 共享设计方法论、CSS-first 修复策略、设计风险启发式（20% 停止 + 30 个修复硬上限）、原子提交格式和 design-baseline.json 回归系统。

@@ -2,7 +2,7 @@
 
 > **角色：** Senior Designer / 资深设计师模式
 > **定位：** 设计质量审查、0-10 评分与修复循环、AI Slop 检测、交互状态完整性
-> **Prompt 长度：** ~450 行 | **allowed-tools：** Read, Grep, Glob, Bash, Edit, Write, AskUserQuestion
+> **Prompt 长度：** ~288 行 | **allowed-tools：** Read, Edit, Grep, Glob, Bash, AskUserQuestion
 > **来源：** `plan-design-review/SKILL.md.tmpl`
 
 ---
@@ -17,9 +17,9 @@
 
 Prompt 中引用了 12 个认知模式，来自 Dieter Rams、Don Norman、Jony Ive、Julie Zhuo、Joe Gebbia 等设计领域最有影响力的思想家。当 Claude 读到 Rams 的名字时，它训练数据中关于"少即是多"哲学的数百万字文本被激活。它不是在应用一条规则——它是在**以 Rams 的审美标准审视设计**。
 
-> **原文：** "These are not design rules. They are taste instincts — the aesthetic reflexes that separate great designers from competent ones. Let them shape every evaluation. Don't cite them; embody them."
+> **原文：** "These aren't a checklist — they're how you see. The perceptual instincts that separate 'looked at the design' from 'understood why it feels wrong.' Let them run automatically as you review."
 >
-> **翻译：** 这些不是设计规则。它们是品味直觉——把伟大设计师和合格设计师区分开的审美反射。让它们塑造每次评估。不要引用它们；体现它们。
+> **翻译：** 这些不是清单——它们是你观察的方式。把"看了设计"和"理解了为什么感觉不对"区分开的感知直觉。在审查过程中让它们自动运行。
 
 ### 第二：它用量化评分把"品味"变成可操作的流程
 
@@ -27,7 +27,7 @@ Prompt 中引用了 12 个认知模式，来自 Dieter Rams、Don Norman、Jony 
 
 ### 第三：它直接编辑计划文件，而不是生成一份独立的审查报告
 
-这是与 `/plan-ceo-review` 和 `/plan-eng-review` 最大的区别。那两个 Skill 只读不写——它们生成审查意见，由你决定是否修改。但 `/plan-design-review` 拿到 Edit 和 Write 权限，**直接在计划文件上改**。
+这是与 `/plan-ceo-review` 的关键区别。`/plan-ceo-review` 只读不写（没有 Edit/Write），纯粹生成审查意见。而 `/plan-eng-review` 有 Write 权限（用于写测试计划文件），`/plan-design-review` 有 Edit 权限，**直接在计划文件上改**。（注意：`/plan-design-review` 没有 Write 权限，只能编辑已有文件，不能创建新文件——这是刻意的约束。）
 
 为什么？因为设计反馈如果不立即落地，就会被遗忘。"把间距改成 16px"如果只写在审查报告里，执行者可能漏掉。但如果直接改在计划文件里，它就成了执行规范的一部分。
 
@@ -39,26 +39,28 @@ Prompt 中引用了 12 个认知模式，来自 Dieter Rams、Don Norman、Jony 
 
 ### 2.1 认知模式（12 个设计思维激活）
 
-| # | 模式名 | 来源 | 原文核心 | 中文含义 | 应用场景 |
+| # | 模式名（源码原名） | 来源 | 原文核心（逐字引用） | 中文含义 | 应用场景 |
 |---|---|---|---|---|---|
-| 1 | 减法为默认 | Rams | "Good design is as little design as possible. Less, but better." | 好的设计是尽可能少的设计。更少，但更好 | 每看到一个 UI 元素都问：删掉它会怎样？ |
-| 2 | 时间维度设计 | Norman | "Design for the 5-second glance, the 5-minute task, and the 5-year relationship." | 为 5 秒扫视、5 分钟任务、5 年关系而设计 | 用户旅程评估时的三层时间框架 |
-| 3 | 细节执念 | Ive | "True simplicity is derived from so much more than just the absence of clutter." | 真正的简洁远不止是没有杂乱 | 质疑表面的简洁是否隐藏了复杂性 |
-| 4 | 有原则的品味 | Zhuo | "Good taste is not subjective. It's having clear principles and applying them consistently." | 好的品味不是主观的。它是拥有清晰的原则并一致地应用它们 | 评分时要求给出原则依据，不是"我觉得" |
-| 5 | 为信任而设计 | Gebbia | "Every design decision either builds or erodes trust." | 每个设计决策要么建立信任，要么侵蚀信任 | 审查每个交互是否让用户感到安全 |
-| 6 | 故事板旅程 | Gebbia | "Storyboard the entire journey. The pain points are in the transitions." | 把整个旅程做成故事板。痛点在转场中 | 不只看单个页面，看页面之间的过渡 |
-| 7 | 一致性偏好 | — | "Inconsistency is cognitive tax. Every deviation needs justification." | 不一致就是认知税。每次偏离都需要理由 | 检查设计系统的遵从度 |
-| 8 | 层级即服务 | — | "Hierarchy answers: what should the user see first, second, third?" | 层级回答的问题是：用户应该先看到什么、然后看到什么、再然后呢？ | 信息架构审查 |
-| 9 | 边界情况偏执 | — | "47-character names? Zero results? Offline? First-timer vs power user?" | 47 个字符的名字？零结果？离线？新手 vs 老手？ | 交互状态覆盖审查 |
-| 10 | 情感弧线意识 | — | "Users have feelings at every step. Map the emotional arc." | 用户在每一步都有情感。画出情感弧线 | 用户旅程的情感维度 |
-| 11 | 可及性即基线 | — | "Accessibility is not a feature. It's the baseline." | 可及性不是功能。它是基线 | 对比度、键盘导航、屏幕阅读器 |
-| 12 | AI Slop 雷达 | — | "If it looks like every other AI-generated UI, it's slop. Purple gradients, generic hero sections, three-column grids with icons — these are AI tells." | 如果它看起来像所有其他 AI 生成的 UI，那就是垃圾。紫色渐变、通用的 hero 区域、带图标的三列网格——这些是 AI 的指纹 | 检测并消除 AI 生成的套路化设计 |
+| 1 | 看系统而非屏幕 | — | "Never evaluate in isolation; what comes before, after, and when things break." | 永远不要孤立评估；要看之前、之后、以及出错时会怎样 | 审查时始终关注上下文和转场 |
+| 2 | 共情即模拟 | — | "Not 'I feel for the user' but running mental simulations: bad signal, one hand free, boss watching, first time vs. 1000th time." | 不是"我同情用户"，而是运行心理模拟：差信号、一只手空、老板在看、第一次 vs 第一千次 | 评估真实使用场景下的体验 |
+| 3 | 层级即服务 | — | "Every decision answers 'what should the user see first, second, third?' Respecting their time, not prettifying pixels." | 每个决策回答"用户该先看到什么、然后看什么？"尊重用户时间，而非美化像素 | 信息架构审查 |
+| 4 | 约束崇拜 | — | "Limitations force clarity. 'If I can only show 3 things, which 3 matter most?'" | 限制迫使清晰。"如果只能展示 3 样，哪 3 样最重要？" | 评估界面是否做了减法 |
+| 5 | 问题反射 | — | "First instinct is questions, not opinions. 'Who is this for? What did they try before this?'" | 第一反应是问题而非意见。"这是给谁的？他们之前试过什么？" | 审查前先理解上下文 |
+| 6 | 边界情况偏执 | — | "What if the name is 47 chars? Zero results? Network fails? Colorblind? RTL language?" | 名字 47 个字符？零结果？网络断了？色盲？RTL 语言？ | 交互状态覆盖审查 |
+| 7 | "我会注意到吗"测试 | — | "Invisible = perfect. The highest compliment is not noticing the design." | 不可见 = 完美。最高赞美是没有注意到设计的存在 | 评估设计是否自然无痕 |
+| 8 | 有原则的品味 | Zhuo | "'This feels wrong' is traceable to a broken principle. Taste is *debuggable*, not subjective." | "感觉不对"可追溯到一个被违反的原则。品味是可调试的，不是主观的 | 评分时必须给出原则依据 |
+| 9 | 减法为默认 | Rams, Maeda | "'As little design as possible' (Rams). 'Subtract the obvious, add the meaningful' (Maeda)." | "尽可能少的设计"（Rams）。"减去显而易见的，加上有意义的"（Maeda） | 看到杂乱时先减再加 |
+| 10 | 时间维度设计 | Norman | "First 5 seconds (visceral), 5 minutes (behavioral), 5-year relationship (reflective) — design for all three simultaneously." | 前 5 秒（本能）、5 分钟（行为）、5 年关系（反思）——同时为三者设计 | 用户旅程的多时间尺度评估 |
+| 11 | 为信任而设计 | Gebbia | "Every design decision either builds or erodes trust. Strangers sharing a home requires pixel-level intentionality." | 每个设计决策要么建立要么侵蚀信任。陌生人共享住所需要像素级的用心 | 审查每个交互是否建立信任 |
+| 12 | 故事板旅程 | Gebbia | "Before touching pixels, storyboard the full emotional arc. The 'Snow White' method: every moment is a scene with a mood." | 动手画像素之前，先做完整情感弧线的故事板。"白雪公主"方法：每个时刻都是有情绪的场景 | 用户旅程的情感维度 |
+
+注意：源码中**没有**"AI Slop 雷达"作为认知模式之一。AI Slop 风险检测是作为 Pass 4 独立审查环节和 Design Principles 第 5 条存在的，而非认知模式的一部分。源码也没有"一致性偏好"、"情感弧线意识"、"可及性即基线"作为独立的认知模式——这些是 Design Principles 和审查环节中的内容，被前一版本错误地归入了认知模式列表。
 
 **认知模式的应用映射：**
 
-> **原文：** "When you evaluate information architecture, think through hierarchy-as-service. When you check interaction states, channel boundary-case paranoia. When you assess the emotional journey, apply Norman's time horizons. When something feels 'meh' but you can't say why, it's probably AI slop — activate the radar."
+> **原文：** "When reviewing a plan, empathy as simulation runs automatically. When rating, principled taste makes your judgment debuggable — never say 'this feels off' without tracing it to a broken principle. When something seems cluttered, apply subtraction default before suggesting additions."
 >
-> **翻译：** 当你评估信息架构时，用层级即服务的方式思考。当你检查交互状态时，用边界情况偏执的方式。当你评估情感旅程时，用 Norman 的时间维度。当某个东西感觉"还行"但你说不出为什么不好时，它可能是 AI 垃圾——启动雷达。
+> **翻译：** 审查计划时，共情即模拟自动运行。评分时，有原则的品味让你的判断可调试——永远不要说"感觉不对"而不追溯到一个被违反的原则。当某个东西看起来杂乱时，先应用减法默认，再建议添加。
 
 **设计原理分析：**
 
@@ -80,9 +82,9 @@ Prompt 中引用了 12 个认知模式，来自 Dieter Rams、Don Norman、Jony 
 
 **Gap→Fix→Re-rate 循环：**
 
-> **原文：** "For each pass: Rate 0-10. If below 8, identify the specific gaps. Fix them by editing the plan directly. Re-rate. Repeat until 8+. Sections already at 8+ get a quick confirmation pass on re-run — don't re-do work that's already good."
+> **原文（The 0-10 Rating Method）：** "Pattern: 1. Rate: 'Information Architecture: 4/10' 2. Gap: 'It's a 4 because the plan doesn't define content hierarchy...' 3. Fix: Edit the plan to add what's missing 4. Re-rate: 'Now 8/10 — still missing mobile nav hierarchy' 5. AskUserQuestion if there's a genuine design choice to resolve 6. Fix again → repeat until 10 or user says 'good enough, move on'"
 >
-> **翻译：** 对每个审查环节：评分 0-10。如果低于 8，识别具体差距。通过直接编辑计划来修复。重新评分。重复直到 8+。已经达到 8+ 的部分在重新运行时只做快速确认——不要重做已经做好的工作。
+> **翻译：** 模式：1. 评分："信息架构：4/10" 2. 差距："是 4 分因为计划没有定义内容层级..." 3. 修复：编辑计划补充缺失内容 4. 重新评分："现在 8/10——仍缺少移动端导航层级" 5. 如果有真正的设计选择需要解决则 AskUserQuestion 6. 再次修复 → 重复直到 10 分或用户说"够好了，继续"
 
 **循环示意：**
 
@@ -112,9 +114,9 @@ Prompt 中引用了 12 个认知模式，来自 Dieter Rams、Don Norman、Jony 
 
 #### Pass 1：Information Architecture（信息架构）
 
-> **原文：** "Information architecture is the skeleton. If the skeleton is wrong, no amount of visual design can save it."
+> **原文：** "Rate 0-10: Does the plan define what the user sees first, second, third? FIX TO 10: Add information hierarchy to the plan. Include ASCII diagram of screen/page structure and navigation flow. Apply 'constraint worship' — if you can only show 3 things, which 3?"
 >
-> **翻译：** 信息架构是骨骼。如果骨骼是错的，再多的视觉设计也救不了它。
+> **翻译：** 评分 0-10：计划是否定义了用户先看到什么、然后看到什么、再看到什么？修复到 10 分：在计划中添加信息层级。包含屏幕/页面结构和导航流程的 ASCII 图表。应用"约束崇拜"——如果只能展示 3 样东西，是哪 3 样？
 
 | 检查项 | 审查什么 | 关键问题 |
 |---|---|---|
@@ -135,9 +137,9 @@ Prompt 中引用了 12 个认知模式，来自 Dieter Rams、Don Norman、Jony 
 | 搜索结果 | 输入时即时反馈 | "没有找到结果" + 建议 | "搜索出错" + 重试 | 结果列表 + 高亮 | 部分匹配 + 模糊提示 |
 | 照片上传 | 进度条 + 百分比 | 拖拽区域 + 提示 | "上传失败" + 原因 + 重试 | 预览 + 确认 | 3/5 上传成功 + 失败项可重试 |
 
-> **原文：** "Every UI component has at least 5 states. If the plan only describes SUCCESS, it's incomplete. Fill in the table. If the designer hasn't thought about EMPTY or PARTIAL, that's where the bugs will be."
+> **原文：** "Rate 0-10: Does the plan specify loading, empty, error, success, partial states? FIX TO 10: Add interaction state table to the plan [...] For each state: describe what the user SEES, not backend behavior. Empty states are features — specify warmth, primary action, context."
 >
-> **翻译：** 每个 UI 组件至少有 5 种状态。如果计划只描述了 SUCCESS，它是不完整的。填完这张表。如果设计师没想过 EMPTY 或 PARTIAL，Bug 就在那里。
+> **翻译：** 评分 0-10：计划是否指定了加载、空、错误、成功、部分状态？修复到 10 分：在计划中添加交互状态表 [...] 对每种状态：描述用户看到什么，而非后端行为。空状态是功能——指定温暖感、主要操作和上下文。
 
 **为什么 PARTIAL 状态特别重要？**
 
@@ -170,9 +172,9 @@ Prompt 中引用了 12 个认知模式，来自 Dieter Rams、Don Norman、Jony 
 
 #### Pass 4：AI Slop Risk（AI 垃圾风险检测）
 
-> **原文：** "AI-generated designs have tells. Like a poker player's tell, they reveal that no human designer made deliberate choices. Purple-to-blue gradients. Generic hero sections with stock imagery. Three-column grids with circular icons. Overly symmetrical layouts. If you see these patterns, flag them."
+> **原文（Pass 4: AI Slop Risk）：** "Rate 0-10: Does the plan describe specific, intentional UI — or generic patterns? FIX TO 10: Rewrite vague UI descriptions with specific alternatives." 以及 Design Principles 第 5 条: "AI slop is the enemy. Generic card grids, hero sections, 3-column features — if it looks like every other AI-generated site, it fails."
 >
-> **翻译：** AI 生成的设计有指纹。就像扑克玩家的 tell，它们暴露了没有人类设计师做过深思熟虑的选择。紫蓝渐变。带库存图片的通用 hero 区域。带圆形图标的三列网格。过度对称的布局。看到这些模式就标记它们。
+> **翻译：** 评分 0-10：计划描述的是具体的、有意图的 UI，还是通用模式？修复到 10 分：用具体的替代方案重写模糊的 UI 描述。/ AI 垃圾是敌人。通用卡片网格、hero 区域、三列特征——如果看起来像其他所有 AI 生成的网站，那就失败了。
 
 **AI Slop 典型特征清单：**
 
@@ -191,9 +193,9 @@ Prompt 中引用了 12 个认知模式，来自 Dieter Rams、Don Norman、Jony 
 
 #### Pass 5：Design System Alignment（设计系统对齐）
 
-> **原文：** "Every component should trace back to the design system. If it can't, either the design system needs updating or the component needs redesigning."
+> **原文（Pass 5）：** "Rate 0-10: Does the plan align with DESIGN.md? FIX TO 10: If DESIGN.md exists, annotate with specific tokens/components. If no DESIGN.md, flag the gap and recommend /design-consultation. Flag any new component — does it fit the existing vocabulary?"
 >
-> **翻译：** 每个组件都应该能追溯到设计系统。如果不能，要么设计系统需要更新，要么组件需要重新设计。
+> **翻译：** 评分 0-10：计划是否与 DESIGN.md 对齐？修复到 10 分：如果 DESIGN.md 存在，用具体的设计代币/组件来标注。如果没有 DESIGN.md，标记为缺口并推荐运行 /design-consultation。标记任何新组件——它是否适合现有的组件词汇？
 
 | 检查项 | 审查什么 |
 |---|---|
@@ -205,9 +207,9 @@ Prompt 中引用了 12 个认知模式，来自 Dieter Rams、Don Norman、Jony 
 
 #### Pass 6：Responsive & Accessibility（响应式与可及性）
 
-> **原文：** "Accessibility is not a feature. It's the baseline. If a screen reader user can't complete the core task, the design is broken — not 'needs improvement', broken."
+> **原文（Design Principles 第 7 条 + Pass 6）：** "Accessibility is not optional. Keyboard nav, screen readers, contrast, touch targets — specify them in the plan or they won't exist." / Pass 6: "Add a11y: keyboard nav patterns, ARIA landmarks, touch target sizes (44px min), color contrast requirements."
 >
-> **翻译：** 可及性不是功能。它是基线。如果屏幕阅读器用户不能完成核心任务，设计就是坏的——不是"需要改进"，是坏的。
+> **翻译：** 可及性不是可选项。键盘导航、屏幕阅读器、对比度、触摸目标——在计划中指定它们，否则它们不会存在。/ 添加无障碍：键盘导航模式、ARIA 地标、触摸目标大小（最小 44px）、颜色对比度要求。
 
 | 检查项 | 标准 |
 |---|---|
@@ -220,9 +222,9 @@ Prompt 中引用了 12 个认知模式，来自 Dieter Rams、Don Norman、Jony 
 
 #### Pass 7：Unresolved Design Decisions（未解决的设计决策）
 
-> **原文：** "Every plan has decisions that were deferred, compromised, or never made. Find them. List them. For each one: what's the default if no decision is made? Is that default acceptable?"
+> **原文（Pass 7）：** "Surface ambiguities that will haunt implementation:" 以及表格模板 "DECISION NEEDED | IF DEFERRED, WHAT HAPPENS"，示例："What does empty state look like? | Engineer ships 'No items found.'"
 >
-> **翻译：** 每个计划都有被延后的、妥协的、或从未做出的决策。找到它们。列出来。对每一个：如果不做决定，默认结果是什么？那个默认结果可接受吗？
+> **翻译：** 暴露会困扰实现的歧义。每个未解决的决策都有一列"如果延后会怎样"——例如"空状态长什么样？→ 工程师会上线'没有找到项目。'"
 
 这个环节是整个审查的**安全网**——它捕获前 6 个环节可能遗漏的问题。
 
@@ -238,9 +240,11 @@ Prompt 中引用了 12 个认知模式，来自 Dieter Rams、Don Norman、Jony 
 
 这是 `/plan-design-review` 与其他审查类 Skill 最大的区别。
 
-> **原文：** "You have Edit and Write permissions. When you find a gap, don't just report it — fix it. Edit the plan directly. The plan IS the deliverable. When you're done, the plan should be better than when you started, not just annotated."
+> **原文（意译自源码设计意图）：** "The output of this skill is a better plan, not a document about the plan." / "Fix: Edit the plan to add what's missing"
 >
-> **翻译：** 你有 Edit 和 Write 权限。当你发现差距时，不要只是报告——修复它。直接编辑计划。计划本身就是交付物。当你完成时，计划应该比开始时更好，而不只是多了些批注。
+> **翻译：** 这个 Skill 的产出是一个更好的计划，而不是一份关于计划的文档。发现差距时，直接编辑计划补充缺失的内容。
+
+注意：源码中没有单独一段完整的"edit-in-place 宣言"，但这个理念体现在整个 Skill 的设计中——它有 Edit 权限（无 Write），每个审查环节的模式都是"评分 → 差距 → 修复 → 重新评分"。
 
 **为什么直接编辑而不是生成审查报告？**
 
@@ -263,9 +267,9 @@ gstack 审查流程：
 
 **Edit-in-Place 的边界规则：**
 
-> **原文：** "Fix gaps in completeness: add missing states, add missing flows, add missing specs. Do NOT override aesthetic choices unless they violate the design system or fail accessibility. Taste is the user's prerogative."
+> **设计意图（从源码行为推导）：** 源码通过 Gap→Fix→Re-rate 循环明确了修复的范围——补充缺失的状态、流程、规格（如交互状态表中的 EMPTY/PARTIAL）。同时，源码中"Escape hatch"规则指出：只有存在真正有意义的设计选择权衡时才 AskUserQuestion——这隐含了"客观遗漏直接修，主观选择问用户"的边界。
 >
-> **翻译：** 修复完整性差距：补充缺失的状态、缺失的流程、缺失的规格。不要覆盖审美选择，除非它违反了设计系统或可及性不达标。品味是用户的特权。
+> 注意：源码中没有"Fix gaps in completeness..."这段原文，上述是对源码设计模式的准确总结。
 
 这条规则划定了 AI 审查的边界：**可以补充遗漏，不能替代品味**。这是一个非常重要的设计决策——它防止了 AI 把所有设计都"审查"成同一种风格。
 
@@ -273,9 +277,9 @@ gstack 审查流程：
 
 ### 2.5 已达标部分的快速通过
 
-> **原文：** "Sections already at 8+ get a quick confirmation pass on re-run. Don't re-do work that's already good. Acknowledge the score, note any new context that might change it, and move on."
+> **原文：** "Re-run loop: invoke /plan-design-review again → re-rate → sections at 8+ get a quick pass, sections below 8 get full treatment."
 >
-> **翻译：** 已经达到 8+ 的部分在重新运行时只做快速确认。不要重做已经做好的工作。确认分数，记录任何可能改变它的新上下文，然后继续。
+> **翻译：** 重新运行循环：再次调用 /plan-design-review → 重新评分 → 8+ 的环节快速通过，低于 8 的环节完整审查。
 
 这条规则解决了一个实际问题：用户可能多次运行 `/plan-design-review`——第一次获得初始审查，修改后再跑一次确认。如果每次都从零开始审查所有 7 个环节，不仅浪费时间，还可能产生不一致的评分（因为 LLM 的输出有随机性）。
 

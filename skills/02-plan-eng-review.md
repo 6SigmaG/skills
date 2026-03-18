@@ -2,7 +2,7 @@
 
 > **角色：** Engineering Manager / 工程经理模式
 > **定位：** 架构审查、失败模式分析、测试矩阵生成、完整性保障
-> **Prompt 长度：** ~500 行 | **allowed-tools：** Read, Grep, Glob, Bash, AskUserQuestion
+> **Prompt 长度：** ~240 行 | **allowed-tools：** Read, Write, Grep, Glob, Bash, AskUserQuestion
 > **来源：** `plan-eng-review/SKILL.md.tmpl`
 
 ---
@@ -19,9 +19,9 @@ Prompt 中引用了 15 个认知模式，每一个都来自真实的工程领袖
 
 关键指令是：
 
-> **原文：** "These are not checklist items. They are engineering instincts — the cognitive reflexes that separate staff-level engineers from senior engineers. Internalize them; don't enumerate them."
+> **原文：** "These are not additional checklist items. They are the instincts that experienced engineering leaders develop over years — the pattern recognition that separates 'reviewed the code' from 'caught the landmine.' Apply them throughout your review."
 >
-> **翻译：** 这些不是检查清单。它们是工程直觉——把 Staff 工程师和高级工程师区分开的认知反射。内化它们，不要列举它们。
+> **翻译：** 这些不是额外的检查清单。它们是经验丰富的工程领袖多年积累的直觉——把"审查了代码"和"发现了地雷"区分开的模式识别能力。在整个审查过程中应用它们。
 
 ### 第二：它用范围挑战作为入口，而不是直接开始审查
 
@@ -41,29 +41,29 @@ Prompt 中引用了 15 个认知模式，每一个都来自真实的工程领袖
 
 这是整个 Skill 的底层操作系统。15 个认知模式不是要 Claude 逐条检查的——它们塑造 Claude 在整个审查过程中的**思维底色**。
 
-| # | 模式名 | 来源 | 原文核心 | 中文含义 | 应用场景 |
+| # | 模式名 | 来源 | 原文核心（逐字引用） | 中文含义 | 应用场景 |
 |---|---|---|---|---|---|
-| 1 | 团队状态诊断 | Larson | "Diagnose the team's actual state before prescribing solutions" | 先诊断团队的真实状态，再开处方 | 审查计划时先问：这个团队有能力执行吗？ |
-| 2 | 无聊即默认 | McKinley (Boring Technology) | "Choose boring technology by default. Innovation tokens are limited." | 默认选无聊的技术。创新代币是有限的 | 看到新框架/新语言时触发质疑 |
-| 3 | 重构节奏 | Fowler | "Refactoring is not a special task. It's part of every task." | 重构不是特殊任务，它是每个任务的一部分 | 审查代码质量时关注持续改进而非大爆炸重写 |
-| 4 | 管理乘数 | Reilly | "Your job is to multiply the team's output, not add to it." | 你的工作是乘以团队的产出，而非加上自己的 | 评估计划是否提升了团队能力而非制造依赖 |
-| 5 | 先让变更变容易 | Beck | "Make the change easy, then make the easy change." | 先让变更变容易，再做那个容易的变更 | 架构审查时问：这个设计让未来的变更更容易还是更难？ |
-| 6 | 从事故中学习 | Allspaw | "Blame-free postmortems. The system failed, not the person." | 无责事后分析。是系统失败了，不是人 | 失败模式分析时关注系统性弱点而非个人责任 |
-| 7 | 本质 vs 偶然复杂度 | Brooks | "There is no silver bullet. Distinguish essential from accidental complexity." | 没有银弹。区分本质复杂度和偶然复杂度 | 复杂度检查时追问：哪些复杂度是问题固有的？哪些是我们自己加的？ |
-| 8 | 错误预算 | Google SRE | "100% reliability is the wrong target. Use error budgets." | 100% 可靠性是错误的目标。使用错误预算 | 性能和可靠性审查时设定务实标准而非不切实际的完美 |
-| 9 | 约束驱动设计 | — | "Constraints are not obstacles. They are design drivers." | 约束不是障碍，它们是设计驱动力 | 审查架构时把限制条件作为设计输入 |
-| 10 | 接口优先 | — | "Design the interface before the implementation." | 先设计接口，再做实现 | 检查组件边界是否从消费者视角定义 |
-| 11 | 可逆性偏好 | — | "Prefer reversible decisions. Make one-way doors narrow." | 偏好可逆的决策。让单向门尽可能窄 | 部署和迁移策略审查 |
-| 12 | 渐进交付 | — | "Ship in slices, not layers. Each slice delivers user value." | 按切片交付，不要按层交付。每个切片交付用户价值 | 审查里程碑划分是否每步都能独立上线 |
-| 13 | 依赖方向 | — | "Dependencies should point toward stability." | 依赖方向应该指向稳定性 | 架构审查时检查依赖图的健康度 |
-| 14 | 可观测性即一等公民 | — | "If you can't observe it, you can't operate it." | 如果你不能观测它，你就不能运维它 | 每个组件都要问：出了问题怎么发现？ |
-| 15 | 时间压力清醒 | — | "Under time pressure, cut scope, not quality." | 时间压力下，砍范围，不砍质量 | 评估时间线时的决策框架 |
+| 1 | 状态诊断 | Larson | "Teams exist in four states: falling behind, treading water, repaying debt, innovating. Each demands a different intervention." | 团队有四种状态：掉队、勉强维持、还债、创新。每种需要不同干预 | 审查计划时先问：这个团队处于什么状态？ |
+| 2 | 爆炸半径直觉 | — | "Every decision evaluated through 'what's the worst case and how many systems/people does it affect?'" | 每个决策都要问"最坏情况是什么？影响多少系统/多少人？" | 评估变更影响范围 |
+| 3 | 无聊即默认 | McKinley | "Every company gets about three innovation tokens." Everything else should be proven technology. | 每家公司大约只有三枚创新代币。其他一切都应该是成熟技术 | 看到新框架/新语言时触发质疑 |
+| 4 | 渐进优于革命 | Fowler | "Strangler fig, not big bang. Canary, not global rollout. Refactor, not rewrite." | 绞杀者模式，而非大爆炸。金丝雀发布，而非全量上线。重构，而非重写 | 审查变更策略是否足够渐进 |
+| 5 | 系统优于英雄 | — | "Design for tired humans at 3am, not your best engineer on their best day." | 为凌晨 3 点疲惫的人设计，而非为最佳状态的最优工程师设计 | 评估方案是否依赖个人英雄主义 |
+| 6 | 可逆性偏好 | — | "Feature flags, A/B tests, incremental rollouts. Make the cost of being wrong low." | Feature flag、A/B 测试、渐进上线。让犯错成本尽可能低 | 部署和迁移策略审查 |
+| 7 | 失败即信息 | Allspaw, Google SRE | "Blameless postmortems, error budgets, chaos engineering. Incidents are learning opportunities, not blame events." | 无责事后分析、错误预算、混沌工程。事故是学习机会，不是追责事件 | 失败模式分析时关注系统性弱点 |
+| 8 | 组织结构即架构 | Skelton/Pais | "Conway's Law in practice. Design both intentionally." | 康威定律的实践。有意识地同时设计组织和架构 | 审查组件边界是否与团队结构匹配 |
+| 9 | DX 即产品质量 | — | "Slow CI, bad local dev, painful deploys → worse software, higher attrition." | 慢 CI、差本地开发、痛苦部署 → 更差的软件、更高的流失 | 评估开发者体验是否被考虑 |
+| 10 | 本质 vs 偶然复杂度 | Brooks | "Before adding anything: 'Is this solving a real problem or one we created?'" | 在加任何东西之前问："这是在解决真实问题还是我们自己创造的问题？" | 复杂度检查时追问复杂度的来源 |
+| 11 | 两周气味测试 | — | "If a competent engineer can't ship a small feature in two weeks, you have an onboarding problem disguised as architecture." | 如果一个称职的工程师两周内无法交付小功能，你有一个伪装成架构的入职问题 | 评估系统的可上手性 |
+| 12 | 胶水工作意识 | Reilly | "Recognize invisible coordination work. Value it, but don't let people get stuck doing only glue." | 识别隐形的协调工作。重视它，但别让人只做胶水工作 | 评估计划是否产生不可见的协调负担 |
+| 13 | 先让变更变容易 | Beck | "Refactor first, implement second. Never structural + behavioral changes simultaneously." | 先重构，再实现。永远不要同时做结构性和行为性变更 | 架构审查时评估变更策略 |
+| 14 | 在生产环境拥有你的代码 | Majors | "No wall between dev and ops." | 开发和运维之间没有墙 | 评估运维责任是否被规划 |
+| 15 | 错误预算优于正常运行时间目标 | Google SRE | "SLO of 99.9% = 0.1% downtime *budget to spend on shipping*." | 99.9% SLO = 0.1% 的停机时间预算可以用来发布新功能 | 可靠性决策时用预算思维而非完美主义 |
 
 **原文关键指令：**
 
-> "When you evaluate architecture, think through Brooks — is this essential or accidental complexity? When you assess technology choices, apply McKinley — is this boring enough? When you review the test plan, channel Allspaw — what will the postmortem say?"
+> "When evaluating architecture, think 'boring by default.' When reviewing tests, think 'systems over heroes.' When assessing complexity, ask Brooks's question. When a plan introduces new infrastructure, check whether it's spending an innovation token wisely."
 >
-> **翻译：** 当你评估架构时，用 Brooks 的方式思考——这是本质复杂度还是偶然复杂度？当你评估技术选型时，用 McKinley 的方式——这个选择够无聊吗？当你审查测试计划时，用 Allspaw 的方式——事后分析报告会怎么写？
+> **翻译：** 评估架构时，想"无聊即默认"。审查测试时，想"系统优于英雄"。评估复杂度时，问 Brooks 的问题。当计划引入新基础设施时，检查是否明智地花费了创新代币。
 
 **设计原理分析：**
 
@@ -77,9 +77,9 @@ Prompt 中引用了 15 个认知模式，每一个都来自真实的工程领袖
 
 **8+ 文件气味检测（Complexity Smell）：**
 
-> **原文：** "If the plan touches 8 or more files, this is a complexity smell. Stop and ask: Can this be split into independent, separately-shippable changes? If not, explain why these files MUST change together."
+> **原文：** "Complexity check: If the plan touches more than 8 files or introduces more than 2 new classes/services, treat that as a smell and challenge whether the same goal can be achieved with fewer moving parts."
 >
-> **翻译：** 如果计划涉及 8 个或更多文件，这是一个复杂度气味。停下来问：这能拆成独立的、可分别上线的变更吗？如果不能，解释为什么这些文件必须一起改。
+> **翻译：** 复杂度检查：如果计划涉及超过 8 个文件或引入超过 2 个新的类/服务，将其视为一个气味（smell），并质疑能否用更少的活动部件实现同样的目标。
 
 **为什么是 8 个文件？**
 
@@ -106,9 +106,11 @@ Prompt 中引用了 15 个认知模式，每一个都来自真实的工程领袖
 
 #### 区块一：Architecture（架构审查）
 
-> **原文：** "Draw the architecture BEFORE you critique it. ASCII diagrams are mandatory. If you can't draw it, you don't understand it."
+> **原文（来自 Documentation and diagrams 部分）：** "I value ASCII art diagrams highly — for data flow, state machines, dependency graphs, processing pipelines, and decision trees. Use them liberally in plans and design docs."
 >
-> **翻译：** 在你批评架构之前，先把它画出来。ASCII 图表是必须的。如果你画不出来，你就没理解它。
+> **翻译：** 我非常重视 ASCII 图表——用于数据流、状态机、依赖图、处理管道和决策树。在计划和设计文档中大量使用它们。
+>
+> 注意："画不出来就是没理解"是对源码设计意图的合理推导，但并非原文。
 
 **架构审查的子项：**
 
@@ -126,9 +128,9 @@ Prompt 中引用了 15 个认知模式，每一个都来自真实的工程领袖
 
 #### 区块二：Code Quality（代码质量审查）
 
-> **原文：** "Quality is not about style. It's about cognitive load — how much effort does the next developer need to understand and safely modify this code?"
+> **源码实际内容（Section 2: Code quality review）：** 该环节审查代码组织、DRY 违反、错误处理模式、技术债热点，以及过度/不足工程化。结合工程偏好中的 "I want code that's 'engineered enough'" 原则。
 >
-> **翻译：** 质量不是关于风格。它是关于认知负荷——下一个开发者需要多少努力来理解和安全地修改这段代码？
+> 注意：源码中没有"Quality is not about style..."这段引文。以上是对源码审查内容的准确描述。
 
 **代码质量审查的关键维度：**
 
@@ -152,9 +154,9 @@ Prompt 中引用了 15 个认知模式，每一个都来自真实的工程领袖
 
 测试审查是 `/plan-eng-review` 最有产出价值的环节，因为它生成的测试矩阵会被写入项目文件供 `/qa` 消费。
 
-> **原文：** "Every new code path needs a test. Every new UX flow needs a test. Every new data flow needs a test. Every new error path needs a test. Every new integration needs a test. No exceptions."
+> **原文（Section 3: Test review）：** "Make a diagram of all new UX, new data flow, new codepaths, and new branching if statements or outcomes. For each, note what is new about the features discussed in this branch and plan. Then, for each new item in the diagram, make sure there is a JS or Rails test."
 >
-> **翻译：** 每条新的代码路径需要测试。每个新的 UX 流程需要测试。每条新的数据流需要测试。每条新的错误路径需要测试。每个新的集成需要测试。没有例外。
+> **翻译：** 画出所有新 UX、新数据流、新代码路径和新的分支条件或结果的图表。对每项标注本分支和计划中有什么是新的。然后，对图表中的每一项，确保有 JS 或 Rails 测试。
 
 **测试图谱（Test Topology）：**
 
@@ -182,9 +184,9 @@ Prompt 中引用了 15 个认知模式，每一个都来自真实的工程领袖
 
 #### 区块四：Performance（性能审查）
 
-> **原文：** "Performance is not about making everything fast. It's about knowing what's slow and why — and deciding whether it matters."
+> **源码实际内容（Section 4: Performance review）：** 审查 N+1 查询和数据库访问模式、内存使用、缓存机会、慢/高复杂度代码路径。
 >
-> **翻译：** 性能不是让一切都快。而是知道什么慢、为什么慢——然后决定这重要不重要。
+> 注意：源码中没有"Performance is not about making everything fast..."这段哲学性引文。源码的风格是直接列出检查项，不做抽象概括。
 
 **性能审查的核心检查项：**
 
@@ -198,17 +200,17 @@ Prompt 中引用了 15 个认知模式，每一个都来自真实的工程领袖
 
 这里的关键是 Google SRE 的**错误预算**思维：
 
-> **原文 (Google SRE)：** "100% reliability is the wrong target. Use error budgets to make deliberate trade-offs between reliability and velocity."
+> **原文（认知模式 #15）：** "SLO of 99.9% = 0.1% downtime *budget to spend on shipping*. Reliability is resource allocation (Google SRE)."
 >
-> **翻译：** 100% 可靠性是错误的目标。使用错误预算在可靠性和速度之间做刻意的权衡。
+> **翻译：** 99.9% 的 SLO = 0.1% 的停机时间预算可以花在发布上。可靠性是资源分配问题。
 
 这意味着性能审查不是追求极致性能——而是设定**务实的性能预算**，然后确保计划不会超出这个预算。
 
 ### 2.4 一次一问规则（One-Issue-Per-AskUserQuestion）
 
-> **原文：** "STOP. One issue per AskUserQuestion. Never bundle. Give your recommendation with reasoning. If no issues or the fix is obvious, state it clearly and move on — don't waste a question. Do not proceed until the user responds."
+> **原文：** "STOP. For each issue found in this section, call AskUserQuestion individually. One issue per call. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one AskUserQuestion. Only proceed to the next section after ALL issues in this section are resolved."
 >
-> **翻译：** 停。一次 AskUserQuestion 一个问题。不要合并。给出你的推荐和理由。如果没问题或者修复很明显，说清楚然后继续——不要浪费一次提问。用户回复前不要继续。
+> **翻译：** 停。对本环节发现的每个问题，单独调用 AskUserQuestion。一次一个问题。展示选项，给出推荐，解释为什么。不要把多个问题合并到一个 AskUserQuestion 中。在本环节所有问题解决之前不要进入下一环节。
 
 这条规则看似简单，但它解决了一个深层问题：**信息过载导致决策质量下降。**
 
@@ -235,9 +237,11 @@ Prompt 中引用了 15 个认知模式，每一个都来自真实的工程领袖
 
 这是 `/plan-eng-review` 最独特的设计之一——它要求**每条代码路径至少有一个现实的生产失败场景**。
 
-> **原文：** "For every code path in the plan, describe one realistic production failure. Not a theoretical one — a story. 'It's 2 AM. PagerDuty fires. The on-call engineer opens the dashboard and sees...' If you can't tell that story, the failure mode analysis is incomplete."
+> **原文（来自 Architecture review 和 Failure modes 部分）：** "For each new codepath or integration point, describe one realistic production failure scenario and whether the plan accounts for it." / "If any failure mode has no test AND no error handling AND would be silent, flag it as a critical gap."
 >
-> **翻译：** 对于计划中的每条代码路径，描述一个现实的生产失败。不是理论上的——是一个故事。"凌晨 2 点。PagerDuty 响了。值班工程师打开仪表盘，看到的是……" 如果你讲不出这个故事，失败模式分析就是不完整的。
+> **翻译：** 对每个新的代码路径或集成点，描述一个现实的生产失败场景以及计划是否考虑了它。/ 如果任何失败模式没有测试、没有错误处理、且会静默发生，标记为关键缺口。
+>
+> 注意：源码中没有"It's 2 AM. PagerDuty fires..."这段叙事化描述。原文更简洁直接，要求的是"一个现实的生产失败场景"而非"故事"。
 
 **为什么要求"故事"而不是"列表"？**
 
@@ -252,9 +256,9 @@ Prompt 中引用了 15 个认知模式，每一个都来自真实的工程领袖
 
 **关键规则：**
 
-> **原文：** "Any combination of 'not caught = yes, not tested = yes, user sees = silent' is a CRITICAL GAP. It must be resolved before the plan is approved."
+> **原文（Failure modes 部分）：** "If any failure mode has no test AND no error handling AND would be silent, flag it as a **critical gap**."
 >
-> **翻译：** 任何"未捕获=是、未测试=是、用户看到=静默"的组合是**关键缺口**。计划批准前必须解决。
+> **翻译：** 如果任何失败模式没有测试、没有错误处理、且会静默发生，标记为**关键缺口**。
 
 这个规则把失败模式分析从"参考信息"提升到了"阻塞条件"。如果有静默的、未捕获的、未测试的失败路径，审查不能通过。
 
@@ -262,9 +266,9 @@ Prompt 中引用了 15 个认知模式，每一个都来自真实的工程领袖
 
 ### 2.6 Boil-the-Lake 完整性哲学
 
-> **原文：** "AI makes the marginal cost of completeness near zero. The gap between an 80% solution and a 100% solution might be 70 lines of code — and AI writes those in seconds. ALWAYS choose 100%."
+> **原文（Step 0, Completeness check）：** "With AI-assisted coding, the cost of completeness (100% test coverage, full edge case handling, complete error paths) is 10-100x cheaper than with a human team. If the plan proposes a shortcut that saves human-hours but only saves minutes with CC+gstack, recommend the complete version. Boil the lake."
 >
-> **翻译：** AI 让完整性的边际成本接近零。80% 方案和 100% 方案的差距可能只有 70 行代码——AI 几秒钟就写完了。永远选 100%。
+> **翻译：** 使用 AI 辅助编码时，完整性的成本（100% 测试覆盖、完整边界处理、完整错误路径）比纯人力团队便宜 10-100 倍。如果计划提出的捷径省的是人力时间但用 CC+gstack 只省几分钟，推荐完整版本。煮干湖水。
 
 "Boil the Lake"（煮干湖水）是 gstack 的核心哲学之一，但在 `/plan-eng-review` 中它有特殊的表现形式：
 

@@ -2,7 +2,7 @@
 
 > **角色：** Staff Engineer / 高级审查模式
 > **定位：** Pre-landing PR 审查，两轮扫描 + 自动修复机械问题
-> **Prompt 长度：** ~400 行 | **allowed-tools：** Bash, Read, Edit, Write, Grep, Glob, AskUserQuestion
+> **Prompt 长度：** ~195 行（不含模板变量展开） | **allowed-tools：** Bash, Read, Edit, Write, Grep, Glob, AskUserQuestion
 > **来源：** `review/SKILL.md.tmpl`
 
 ---
@@ -182,47 +182,57 @@ recommendation for each. Don't interleave ASK items with AUTO-FIX actions.
 
 这个设计避免了"审查疲劳"——如果 Claude 每发现一个问题就停下来问，用户会在第三个问题时开始无脑点"同意"。批量呈现让用户可以一次性审视所有需要判断的问题，做出更一致的决策。
 
-### 2.4 Greptile 集成与两级升级
+### 2.4 Greptile 集成与四类分诊
 
-**原文：**
+**原文（来自 SKILL.md.tmpl Step 5 Greptile 部分）：**
 ```
-Check Greptile for existing review comments. Two-tier escalation:
-- Tier 1 (friendly): "Thanks for flagging this! Here's what I found..."
-- Tier 2 (firm): "This needs to be addressed before merge. The issue is..."
+Before replying to any comment, run the Escalation Detection algorithm from
+greptile-triage.md to determine whether to use Tier 1 (friendly) or Tier 2
+(firm) reply templates.
+
+1. VALID & ACTIONABLE comments: included in findings — follow Fix-First flow
+2. FALSE POSITIVE comments: Present via AskUserQuestion with options
+3. VALID BUT ALREADY FIXED comments: Reply using Already Fixed template — no
+   AskUserQuestion needed
+4. SUPPRESSED comments: Skip silently
 ```
 
 **中文翻译：**
-检查 Greptile 的现有审查评论。两级升级：
-- 第一级（友好）："感谢指出这个！这是我发现的..."
-- 第二级（坚定）："这个在合并前必须解决。问题是..."
+在回复任何评论之前，运行 greptile-triage.md 中的升级检测算法，决定使用第一级（友好）还是第二级（坚定）回复模板。
+
+四种分类及处理方式：
+1. 有效且可操作——纳入审查发现，走 Fix-First 流程
+2. 假阳性——用 AskUserQuestion 让用户决定（回复 Greptile / 顺手修 / 忽略）
+3. 有效但已修复——用"已修复"模板自动回复，不需要问用户
+4. 已抑制——静默跳过（来自之前分诊的已知假阳性）
 
 **设计原理分析：**
 
 Greptile 是一个 AI 代码审查工具，它会在 PR 上自动留下评论。/review 的设计不是忽略这些评论或与之竞争，而是**对其进行分诊（triage）**。
 
-两级回复模板解决了一个真实的团队动态问题：当 AI 审查工具（Greptile）留下了不准确或过度谨慎的评论时，如何回复？直接忽略会让团队不信任工具；逐条反驳又太耗时。两级模板提供了预制的回复方式：
+四类分诊 + 两级回复模板解决了一个真实的团队动态问题：当 AI 审查工具（Greptile）留下了不准确或过度谨慎的评论时，如何回复？直接忽略会让团队不信任工具；逐条反驳又太耗时。模板提供了预制的回复方式，并且每条回复都要求包含证据（内联 diff、代码引用、重新排序建议）。
 
-- **第一级**用于 Greptile 的评论有道理但 Claude 已经处理了的情况——承认贡献，展示解决方案
-- **第二级**用于 Greptile 发现了 Claude 也认为严重的问题——强化严重性，确保不被忽略
+特别值得注意的是"VALID BUT ALREADY FIXED"类别——不需要问用户，自动回复并附上修复的 commit SHA。这是**消除冗余交互**的设计：如果 Claude 已经在 Fix-First 阶段修复了 Greptile 指出的问题，就没必要再问用户怎么处理。
 
-**迁移价值：** 这个模式适用于任何需要和其他审查工具（或审查者）协作的场景。关键是：不要覆盖别人的评论，而是对其分诊和补充。在引用 `review/greptile-triage.md` 作为参考时，Claude 得到了具体的分诊标准。
+**迁移价值：** 这个模式适用于任何需要和其他审查工具（或审查者）协作的场景。关键是：不要覆盖别人的评论，而是对其分诊和补充。用分类系统替代逐条处理，用模板替代即兴回复。
 
 ### 2.5 设计审查精简版（Design Review Lite）
 
+源模板中，Step 4.5 通过 `{{DESIGN_REVIEW_LITE}}` 模板变量引入精简版设计审查。这个模板变量的具体内容在另一个共享模板文件中定义，此处不可见。但模板说明了关键规则：
+
 **原文：**
 ```
-For frontend changes, run a 20-item design checklist covering:
-loading states, error states, empty states, responsive breakpoints,
-accessibility (ARIA, keyboard nav, screen reader), animation performance,
-color contrast, touch targets, RTL support...
+Include any design findings alongside the findings from Step 4. They follow the
+same Fix-First flow in Step 5 — AUTO-FIX for mechanical CSS fixes, ASK for
+everything else.
 ```
 
 **中文翻译：**
-对于前端变更，运行一个 20 项设计清单，覆盖：加载状态、错误状态、空状态、响应式断点、可访问性（ARIA、键盘导航、屏幕阅读器）、动画性能、颜色对比度、触摸目标、RTL 支持...
+将设计发现与 Step 4 的发现一起包含。它们遵循相同的 Fix-First 流程——机械性 CSS 修复自动执行，其他一切则询问。
 
 **设计原理分析：**
 
-这个 20 项清单的巧妙之处在于它**不是一个独立的设计审查工具**，而是嵌入在代码审查流程中的。当 diff 中检测到前端文件变更时，它自动激活。
+设计审查精简版的巧妙之处在于它**不是一个独立的设计审查工具**，而是嵌入在代码审查流程中的。当 diff 中检测到前端文件变更时，它自动激活。发现的设计问题和代码问题统一进入 Fix-First 流程，不需要单独的处理管道。
 
 这解决了一个常见的组织问题：设计审查和代码审查是分离的流程，前端代码经常在两个流程之间的缝隙中"漏网"——设计师审查了 mockup，工程师审查了逻辑，但没人检查**实现是否匹配设计意图的细节**。
 
@@ -232,35 +242,46 @@ color contrast, touch targets, RTL support...
 
 **Step 1：检查分支状态**
 ```
-Check current branch. Identify base branch. Ensure working tree is clean.
+1. Run `git branch --show-current` to get the current branch.
+2. If on the base branch, output: "Nothing to review — you're on the base branch
+   or have no changes against it." and stop.
+3. Run `git fetch origin <base> --quiet && git diff origin/<base> --stat` to check
+   if there's a diff. If no diff, output the same message and stop.
 ```
-确认分支状态，识别目标分支。确保工作区干净。
+获取当前分支，如果在基础分支上或没有 diff 则停止。
 
 **Step 2：读取审查清单**
 ```
-Read review/checklist.md for project-specific review criteria.
+Read `.claude/skills/review/checklist.md`.
+If the file cannot be read, STOP and report the error. Do not proceed
+without the checklist.
 ```
-读取 `review/checklist.md` 获取项目特定的审查标准。
+读取 `.claude/skills/review/checklist.md` 获取审查标准。如果无法读取，停下来报告错误，不继续。
 
-这一步的设计意图是**让审查标准可配置**。不同项目有不同的审查重点——金融项目关注精度、医疗项目关注隐私、游戏项目关注性能。通过读取项目级别的清单文件，/review 可以适配任何项目。
+注意这里的**硬性依赖设计**——清单不是可选的，没有清单就不审查。这确保了审查标准的一致性，同时让标准可配置。不同项目有不同的审查重点——金融项目关注精度、医疗项目关注隐私、游戏项目关注性能。通过读取项目级别的清单文件，/review 可以适配任何项目。
 
-**Step 3：检查 Greptile**
+**Step 2.5：检查 Greptile**（注意：源模板中编号为 Step 2.5，不是 Step 3）
 ```
-Check Greptile for existing review comments. Triage using
-review/greptile-triage.md criteria.
+Read `.claude/skills/review/greptile-triage.md` and follow the fetch, filter,
+classify, and escalation detection steps.
+If no PR exists, `gh` fails, API returns an error, or there are zero Greptile
+comments: Skip this step silently. Greptile integration is additive — the
+review works without it.
 ```
-检查 Greptile 的现有评论。使用 `review/greptile-triage.md` 的标准进行分诊。
+读取 greptile-triage.md 并执行分诊流程。如果没有 PR、gh 失败、API 报错或零评论——静默跳过。Greptile 集成是**附加功能**，审查不依赖它。
 
-**Step 4：获取完整 diff**
+**Step 3：获取完整 diff**（源模板中为 Step 3）
 
 **原文：**
 ```
-Read the FULL diff before making any comments. Do not start commenting
-after reading partial changes.
+Fetch the latest base branch to avoid false positives from stale local state:
+git fetch origin <base> --quiet
+Run `git diff origin/<base>` to get the full diff. This includes both committed
+and uncommitted changes against the latest base branch.
 ```
 
 **中文翻译：**
-在做任何评论之前，阅读完整的 diff。不要在读了部分变更后就开始评论。
+拉取最新基础分支以避免过期本地状态导致的假阳性。运行 `git diff origin/<base>` 获取完整 diff，包括已提交和未提交的变更。
 
 **设计原理分析：**
 
@@ -270,25 +291,42 @@ Claude（和所有 LLM）有一个倾向——读到第一个文件的变更后�
 
 这也是为什么 /review 能发现跨文件问题（如 enum 完整性）——因为它在开始分析之前已经看到了所有文件的变更。
 
-**Step 5：两轮审查**
+**Step 4：两轮审查**（源模板中为 Step 4）
 执行 Pass 1（CRITICAL）和 Pass 2（INFORMATIONAL），如上文所述。
 
-**Step 6：Fix-First 执行**
-```
-AUTO-FIX mechanical issues. Batch ASK items. Present for approval.
-```
-自动修复机械问题。批量呈现询问项目。等待批准。
+**Step 4.5：设计审查（条件触发）**
+当 diff 包含前端文件时，自动运行 `{{DESIGN_REVIEW_LITE}}` 模板内容。发现的设计问题和代码问题一起进入 Fix-First 流程。
 
-**Step 7：TODOS 交叉参考**
+**Step 5：Fix-First 执行**（源模板中为 Step 5，含子步骤 5a-5d）
+
+源模板把这个步骤拆成了四个精确的子步骤：
+- **Step 5a**: 分类每个发现为 AUTO-FIX 或 ASK
+- **Step 5b**: 自动修复所有 AUTO-FIX 项目，每个输出一行：`[AUTO-FIXED] [file:line] Problem → what you did`
+- **Step 5c**: 将所有 ASK 项目批量呈现在一个 AskUserQuestion 中（3 个以下可以单独问）
+- **Step 5d**: 执行用户批准的修复
+
+关键细节：如果没有 ASK 项目（全部是 AUTO-FIX），完全跳过提问。
+
+**Greptile 评论处理**也嵌入在 Step 5 中，按四种分类分别处理：VALID & ACTIONABLE（进入 Fix-First 流程）、VALID BUT ALREADY FIXED（自动回复，不需问用户）、FALSE POSITIVE（让用户决定是否回复 Greptile）、SUPPRESSED（静默跳过）。
+
+**Step 5.5：TODOS 交叉参考**
 
 **原文：**
 ```
-Cross-reference with TODOS.md. Flag any TODO items that this PR should
-have addressed but didn't.
+Read `TODOS.md` in the repository root (if it exists). Cross-reference the PR
+against open TODOs:
+- Does this PR close any open TODOs?
+- Does this PR create work that should become a TODO?
+- Are there related TODOs that provide context for this review?
+If TODOS.md doesn't exist, skip this step silently.
 ```
 
 **中文翻译：**
-与 TODOS.md 交叉参考。标记这个 PR 应该处理但没有处理的 TODO 项目。
+读取仓库根目录的 TODOS.md（如果存在）。将 PR 与待办项交叉参考：
+- 这个 PR 是否关闭了任何待办项？
+- 这个 PR 是否创建了应该成为待办项的工作？
+- 是否有相关待办项为本次审查提供上下文？
+如果 TODOS.md 不存在，静默跳过。
 
 **设计原理分析：**
 
@@ -297,33 +335,47 @@ have addressed but didn't.
 2. PR 做的新工作和已知的技术债务不冲突
 3. 审查者有完整的上下文——不只是"这个 PR 做了什么"，还有"这个 PR 在整体计划中处于什么位置"
 
-**Step 8：文档过期检查**
-```
-Check if documentation is stale relative to the changes in this PR.
-```
-检查文档相对于这个 PR 的变更是否过期。
+注意"如果不存在就静默跳过"——这与 /ship 中"不存在就停下来询问"形成对比。/review 是审查工具，TODOS.md 是可选上下文；/ship 是发布工具，TODOS.md 是推荐的项目管理实践。
 
-### 2.7 关键运行规则
+**Step 5.6：文档过期检查**
 
 **原文：**
 ```
-Rules:
-1. Read FULL diff before commenting
-2. Fix-first, not read-only
-3. Be terse — no filler words, no pleasantries in code comments
-4. Only flag real problems — if you're not sure it's a bug, it's not a bug
+Cross-reference the diff against documentation files. For each .md file in the
+repo root (README.md, ARCHITECTURE.md, CONTRIBUTING.md, CLAUDE.md, etc.):
+1. Check if code changes affect features described in that doc file.
+2. If the doc was NOT updated but the code it describes WAS changed, flag as
+   INFORMATIONAL: "Documentation may be stale... Consider running /document-release."
+This is informational only — never critical.
+```
+检查文档相对于代码变更是否过期。这只是信息性问题，不是关键问题。建议的修复方式是运行 `/document-release`。
+
+### 2.7 关键运行规则
+
+**原文（Important Rules 节）：**
+```
+- Read the FULL diff before commenting. Do not flag issues already addressed
+  in the diff.
+- Fix-first, not read-only. AUTO-FIX items are applied directly. ASK items are
+  only applied after user approval. Never commit, push, or create PRs — that's
+  /ship's job.
+- Be terse. One line problem, one line fix. No preamble.
+- Only flag real problems. Skip anything that's fine.
+- Use Greptile reply templates from greptile-triage.md. Every reply includes
+  evidence. Never post vague replies.
 ```
 
 **中文翻译：**
 规则：
-1. 评论前读完整 diff
-2. 修复优先，不是只读
-3. 简洁——代码评论中不要填充词、不要客套话
-4. 只标记真实问题——如果你不确定它是 bug，它就不是 bug
+1. 评论前读完整 diff。不要标记 diff 中已经解决的问题
+2. 修复优先，不是只读。AUTO-FIX 直接执行，ASK 只在用户批准后执行。**绝不提交、推送或创建 PR——那是 /ship 的工作**
+3. 简洁。一行描述问题，一行描述修复。不要开场白
+4. 只标记真实问题。没问题的就跳过
+5. 使用 greptile-triage.md 中的回复模板。每条回复都包含证据。绝不发空泛回复
 
 **设计原理分析：**
 
-规则 3 和 4 共同解决了 AI 代码审查中最大的问题：**噪音**。
+规则 3 和 4 共同解决了 AI 代码审查中最大的问题：**噪音**。规则 2 中"绝不提交/推送/创建 PR"则划清了 /review 和 /ship 的职责边界——/review 是审查工具，/ship 才是发布工具。
 
 没有这些约束的 AI 审查工具会生成这样的评论：
 > "这个函数看起来不错！不过我注意到你可能想考虑一下这里是否有潜在的性能影响，虽然我不完全确定在当前上下文中这是否真的是一个问题..."

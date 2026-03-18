@@ -8,6 +8,8 @@
 
 ---
 
+> **结构说明：** 本文采用简化结构（为什么需要 → 完整拆解 → 技术原理 → 使用场景 → 迁移价值），因为 /setup-browser-cookies 是一个工具型 Skill（~74 行），不像 /review 或 /ship 那样有复杂的策略设计。
+
 ## 一、为什么需要这个 Skill
 
 **问题：** `/qa` 和 `/browse` 使用的是无头 Chromium 浏览器 — 它没有你的登录态。如果你要测试登录后的页面（如 GitHub Settings、后台管理面板、用户 Dashboard），你需要先登录。
@@ -71,7 +73,7 @@ Wait for the user to confirm they've finished selecting.
 **方式 B：直接导入指定域名**
 
 ```bash
-$B cookie-import-browser comet --domain .github.com
+$B cookie-import-browser comet --domain github.com
 ```
 
 跳过 UI，直接从指定浏览器导入指定域名的 Cookie。适合你已经知道需要哪些 Cookie 的场景。
@@ -98,6 +100,8 @@ $B cookies
 ---
 
 ## 三、底层技术原理
+
+> 注意：以下技术细节来自 `browse/src/cookie-import-browser.ts` 等源码文件的分析，不是来自 SKILL.md.tmpl 模板本身。模板只有 ~74 行，负责指挥 Claude 调用命令；加密和解密逻辑在底层 TypeScript 实现中。
 
 ### Cookie 解密流程（macOS）
 

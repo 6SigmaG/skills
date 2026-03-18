@@ -1,9 +1,10 @@
 # /qa-only 深度解构
 
-> **角色：** QA Reporter — 质量报告专家
-> **定位：** 与 /qa 相同的测试方法论，但绝不修复 Bug、绝不读源码
-> **核心机制：** 纯黑盒测试、最小工具集、报告导向、Bug 报告移交
-> **来源：** `qa-only/SKILL.md.tmpl`
+> **角色：** QA Engineer — 质量工程师（仅报告模式）
+> **定位：** 与 /qa 共享 `{{QA_METHODOLOGY}}` 测试方法论，但绝不修复 Bug、绝不读源码
+> **核心机制：** 报告导向、自然语言行为约束（非工具约束）、Bug 报告移交
+> **allowed-tools：** Bash, Read, Write, AskUserQuestion
+> **来源：** `qa-only/SKILL.md.tmpl`（v1.0.0）
 
 ---
 
@@ -25,10 +26,14 @@
 | 安全评估 | 安全团队发现漏洞后交给开发修复，而不是自己修 |
 | 合规要求 | 某些行业要求测试和修复必须由不同角色完成 |
 
-**原文：**
-> "Same methodology as /qa. Same rigor. Same thoroughness. But NEVER fix bugs. NEVER read source code. You are a black-box tester. Your deliverable is a bug report, not a code change."
+**原文（模板头部和 Rule 11）：**
+> "You are a QA engineer. Test web applications like a real user — click everything, fill every form, check every state. Produce a structured report with evidence. **NEVER fix anything.**"
+>
+> Rule 11: "Never fix bugs. Find and document only. Do not read source code, edit files, or suggest fixes in the report. Your job is to report what's broken, not to fix it. Use `/qa` for the test-fix-verify loop."
 
-**翻译：** 与 /qa 相同的方法论。相同的严谨度。相同的彻底性。但绝不修复 Bug。绝不读源码。你是黑盒测试员。你的交付物是 Bug 报告，不是代码改动。
+**翻译：** 你是一名 QA 工程师。像真实用户一样测试 Web 应用——点击所有东西、填写所有表单、检查所有状态。生成带证据的结构化报告。**绝不修复任何东西。**
+
+规则 11：绝不修复 Bug。只发现和记录。不要读源码、编辑文件或在报告中建议修复方案。你的工作是报告什么坏了，而不是修它。要修复的话用 `/qa`。
 
 ### 三个关键约束
 
@@ -38,37 +43,23 @@
 
 为什么要如此绝对？因为"尽量不修"会给 AI 留下解释空间。Claude 很擅长自我说服："这个修复只是加了一行 CSS，应该没问题吧？" 一旦开了这个口子，行为就不可预测了。绝对禁令消除了所有灰色地带。
 
-**原文：**
-> "There is no 'trivial enough to fix' exception. A one-character typo fix is still a fix. Report it. Do not touch it."
+**2. Do not read source code — 不读源码**
 
-**翻译：** 没有"简单到可以顺手修"的例外。一个字符的拼写错误修复也是修复。报告它。不要碰它。
+这是一个**自然语言约束**，而非工具约束。Rule 11 明确说"Do not read source code"——但 `/qa-only` 的 allowed-tools 中**实际上包含 Read 工具**。
 
-**2. NEVER reads source code — 绝不读源码**
+**为什么？** 因为 `/qa-only` 需要 Read 来读取配置文件、测试计划等非源码文件。"不读源码"是通过自然语言指令而非工具限制来约束的。
 
-这个约束更激进。`/qa-only` 不只是不改代码 — 它**不看代码**。
+纯黑盒测试的价值在于：测试者不依赖实现细节，所以它会尝试所有它能想到的输入组合 — 包括开发者认为"不可能发生"的那些。
 
-**为什么？** 因为一旦 AI 读了源码，它的测试行为就不再是"黑盒"了。它会不自觉地根据代码实现来调整测试策略，跳过它"知道代码已经处理了"的边界情况。
-
-纯黑盒测试的价值在于：测试者不知道实现细节，所以它会尝试所有它能想到的输入组合 — 包括开发者认为"不可能发生"的那些。
-
-**3. Minimal toolset — 最小工具集**
+**3. 工具集对比**
 
 | /qa 的工具 | /qa-only 的工具 |
 |---|---|
-| Bash, Read, Edit, Write, Grep, Glob | Bash（仅限浏览器命令） |
-| 浏览器（全部命令） | 浏览器（READ + 部分 META 命令） |
-| AskUserQuestion | AskUserQuestion |
+| Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, WebSearch | Bash, Read, Write, AskUserQuestion |
 
-**原文：**
-> "Minimal toolset enforces the constraint architecturally. You cannot read source code if you don't have the Read tool. You cannot edit files if you don't have the Edit tool."
+**与 /qa 的区别：** `/qa-only` 缺少 Edit、Glob、Grep、WebSearch。没有 Edit 意味着不能编辑代码文件。没有 Grep/Glob 限制了源码搜索能力。但 Read 和 Write 是存在的——Read 用于读取配置和报告文件，Write 用于生成报告。
 
-**翻译：** 最小工具集从架构层面强制执行约束。没有 Read 工具你就不能读源码。没有 Edit 工具你就不能编辑文件。
-
-**设计原理（极其重要）：** 这是 gstack 的一个深层设计原则 — **用 allowed-tools 而不是用自然语言指令来强制行为约束。**
-
-为什么？因为自然语言指令（"不要读源码"）是软约束 — Claude 在特定上下文压力下可能违反。但 allowed-tools 是硬约束 — Claude 物理上不能调用未授权的工具。
-
-这等于：不是告诉保安"不要让任何人进入" — 而是**直接锁上门**。
+**设计原理分析：** `/qa-only` 的约束设计是**混合模式**：部分通过工具限制（去掉 Edit/Grep/Glob 限制了代码修改和搜索能力），部分通过自然语言指令（Rule 11 的 "Do not read source code" 约束了 Read 工具的使用范围）。这不是纯粹的"锁门"策略，而是"锁了部分门 + 立了规矩"的策略。
 
 ---
 
@@ -78,9 +69,8 @@
 
 `/qa-only` 和 `/qa` 共享完全相同的测试方法论（通过模板系统的 `{{QA_METHODOLOGY}}` 占位符实现）：
 
-- **三级测试深度：** Quick / Standard / Exhaustive
+- **共享 QA 方法论：** 通过 `{{QA_METHODOLOGY}}` 模板变量引入（具体内容在共享模板中）
 - **Diff-aware 模式：** 自动检测受影响页面（但不读源码来做依赖分析 — 只通过 URL 路由推断）
-- **80 项检查清单：** 功能 + 视觉 + 性能 + 可访问性
 
 唯一的区别：Diff-aware 在 `/qa-only` 中只能通过路由映射来推断影响范围（"改了 /api/users → 测试用户相关页面"），不能通过源码依赖分析来精确追踪。这是"不读源码"约束的代价 — 测试范围可能更宽泛（过度测试）但不会遗漏。
 
@@ -162,7 +152,7 @@ Step 3: 生成测试计划
 | **发现 Bug 后** | 定位 → 修复 → 提交 → 验证 | 记录 → 截图 → 写报告 |
 | **读源码** | 是 | 否 |
 | **写代码** | 是 | 否 |
-| **工具集** | 完整 | 最小 |
+| **工具集** | Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, WebSearch | Bash, Read, Write, AskUserQuestion |
 | **产出** | 修复后的代码 + 回归测试 | Bug 报告 |
 | **交付对象** | 代码库（直接提交） | 人类开发者（读报告后自行修复） |
 | **Diff-aware 精度** | 精确（源码依赖分析） | 粗粒度（文件名推断） |
@@ -180,45 +170,35 @@ Step 3: 生成测试计划
 
 ---
 
-## 四、用 allowed-tools 强制行为约束的设计模式
+## 四、行为约束的混合设计模式
 
-这是 `/qa-only` 贡献的最重要的可迁移设计模式。
+`/qa-only` 实际采用的是**混合约束策略**，而非纯工具约束。
 
-### 自然语言约束 vs 工具约束
+### 三种约束层级
 
 ```markdown
-# 方案 A：自然语言约束（弱）
-你是一个只读审查员。不要修改任何文件。只报告问题。
-allowed-tools:
-  - Read
-  - Edit    ← 物理上可以编辑，只靠指令阻止
-  - Bash
-  - Grep
+# 层级 1：工具约束（硬约束）
+去掉 Edit → 物理上不能修改文件内容
+去掉 Grep/Glob → 限制了源码搜索能力
 
-# 方案 B：工具约束（强）
-你是一个只读审查员。
-allowed-tools:
-  - Read    ← 可以读
-  - Bash    ← 可以运行命令
-  - Grep    ← 可以搜索
-  # 没有 Edit、没有 Write → 物理上不可能修改文件
+# 层级 2：自然语言约束（软约束）
+Rule 11: "Do not read source code" → 有 Read 工具但被指令约束使用范围
+Rule 11: "Do not suggest fixes" → 报告中不包含修复建议
+
+# 层级 3：角色定义约束（上下文约束）
+"You are a QA engineer" → 角色暗示了行为边界
+"NEVER fix anything" → 加粗强调的行为禁令
 ```
 
-方案 A 依赖 Claude 的"自制力"。方案 B 依赖**架构约束**。
-
-在安全工程中这叫"最小权限原则（Principle of Least Privilege）" — 不要给一个角色超出其职责所需的任何权限。gstack 把这个原则应用到了 AI Agent 的工具授权上。
+`/qa-only` 的实际设计表明 gstack 并非总是采用纯工具约束。当一个工具（如 Read）有正当用途（读配置、读测试计划）但也有被滥用的可能（读源码），自然语言指令是务实的补充。
 
 ### 如何设计你自己的"约束型 Skill"
 
 1. **确定角色的职责边界** — 这个角色应该做什么？不应该做什么？
-2. **把"不应该做什么"映射到工具** — 不应该改代码 → 去掉 Edit/Write。不应该读源码 → 去掉 Read/Grep
-3. **在 allowed-tools 中只保留必需工具** — 宁可少给不多给
-4. **用自然语言补充解释** — "你没有 Edit 工具，因为你的角色是报告者不是修复者"
-
-**原文：**
-> "The toolset IS the constraint. Natural language instructions are the explanation. If they conflict, the toolset wins."
-
-**翻译：** 工具集就是约束。自然语言指令是解释。如果两者冲突，工具集赢。
+2. **优先用工具约束实现硬性禁令** — 不应该改代码 → 去掉 Edit。这是最可靠的
+3. **对需要部分权限的工具，用自然语言限制使用范围** — 保留 Read 但指令说"不读源码"
+4. **在 allowed-tools 中只保留必需工具** — 宁可少给不多给
+5. **角色定义强化约束** — "你是报告者不是修复者"提供行为上下文
 
 ---
 
@@ -283,7 +263,7 @@ allowed-tools:
 
 ### 关键提取物（可复用到任何"只报告不修复"的 Skill）
 
-1. **用 allowed-tools 而不是自然语言做硬约束** — 工具集是铁门，指令是建议
+1. **优先用 allowed-tools 做硬约束，自然语言做补充** — 工具限制是最可靠的，但当工具有正当多用途时，自然语言指令是务实的补充
 2. **绝对禁令优于柔性建议** — "NEVER" 比 "try not to" 可靠 100 倍
 3. **共享方法论，分离权限** — /qa 和 /qa-only 共享 `{{QA_METHODOLOGY}}`，只是工具集不同
 4. **过度测试优于遗漏** — 不读源码时影响分析会更粗粒度，这是可接受的代价
