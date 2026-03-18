@@ -1,199 +1,52 @@
-# gstack 深度学习指南
+# gstack 深度解构与学习指南
 
-> **版本：** 基于 gstack v0.6.4.0 | **作者：** Garry Tan (Y Combinator CEO)
-> **定位：** 将 Claude Code 变成一个虚拟工程团队的开源 Skills 框架
+> 基于 gstack v0.6.4.0 源码逐文件分析 | Garry Tan（Y Combinator CEO）
+>
+> 本文比你能找到的任何 gstack 介绍都更深入。它不仅解释 gstack **做什么**，更拆解它**为什么有效** — 从 Prompt Engineering 的底层原理到可以直接复用的设计模式。
 
 ---
 
 ## 目录
 
-- [第一层：基础篇 — 理解 gstack 是什么](#第一层基础篇--理解-gstack-是什么)
-  - [1.1 一句话理解 gstack](#11-一句话理解-gstack)
-  - [1.2 前置知识：Claude Code Skills 机制](#12-前置知识claude-code-skills-机制)
-  - [1.3 gstack 解决了什么问题](#13-gstack-解决了什么问题)
-  - [1.4 13 个 Skill 角色全景图](#14-13-个-skill-角色全景图)
-  - [1.5 安装与快速体验](#15-安装与快速体验)
-  - [1.6 核心工作流：一个功能从想法到上线](#16-核心工作流一个功能从想法到上线)
-  - [1.7 关键概念速查表](#17-关键概念速查表)
-- [第二层：高阶篇 — 架构设计与内部原理](#第二层高阶篇--架构设计与内部原理)
-  - [2.1 整体架构：两层系统](#21-整体架构两层系统)
-  - [2.2 Browse 浏览器引擎：核心技术深度拆解](#22-browse-浏览器引擎核心技术深度拆解)
-  - [2.3 SKILL.md 模板系统：Prompt 即代码](#23-skillmd-模板系统prompt-即代码)
-  - [2.4 测试金字塔：三层验证体系](#24-测试金字塔三层验证体系)
-  - [2.5 设计哲学拆解](#25-设计哲学拆解)
-  - [2.6 如何参考 gstack 开发自己的 Skills](#26-如何参考-gstack-开发自己的-skills)
-  - [2.7 项目文件结构完整地图](#27-项目文件结构完整地图)
+- [Layer 0：30 秒理解 gstack](#layer-030-秒理解-gstack)
+- [Layer 1：先感受，再理解](#layer-1先感受再理解)
+  - [1.1 一个功能从想法到上线](#11-一个功能从想法到上线)
+  - [1.2 30 分钟动手实验](#12-30-分钟动手实验)
+  - [1.3 13 个角色全景](#13-13-个角色全景)
+- [Layer 2：为什么有效 — 设计原理深度拆解](#layer-2为什么有效--设计原理深度拆解)
+  - [2.1 核心发现：姿态 > 内容](#21-核心发现姿态--内容)
+  - [2.2 五个设计哲学](#22-五个设计哲学)
+  - [2.3 Browse 浏览器引擎：关键工程决策](#23-browse-浏览器引擎关键工程决策)
+  - [2.4 模板系统：Prompt 即代码](#24-模板系统prompt-即代码)
+  - [2.5 三层测试金字塔](#25-三层测试金字塔)
+- [Layer 3：从零开发你自己的 Skill](#layer-3从零开发你自己的-skill)
+  - [3.1 Claude Code Skill 是什么](#31-claude-code-skill-是什么)
+  - [3.2 最小可行 Skill：5 分钟写一个](#32-最小可行-skill5-分钟写一个)
+  - [3.3 从 gstack 提取的 7 个设计模式](#33-从-gstack-提取的-7-个设计模式)
+  - [3.4 完整开发流程：从构思到部署](#34-完整开发流程从构思到部署)
+  - [3.5 常见误区](#35-常见误区)
+- [附录：速查参考](#附录速查参考)
 
 ---
 
-# 第一层：基础篇 — 理解 gstack 是什么
+# Layer 0：30 秒理解 gstack
 
-## 1.1 一句话理解 gstack
+**gstack 把一个 AI 助手变成一支 13 人的虚拟工程团队。**
 
-**gstack 是一套 Claude Code 的 Skill 集合，它把一个 AI 助手变成 13 个不同角色的"虚拟团队成员"。**
+没有 gstack：你说"帮我加个功能"→ AI 直接写代码 → 直接提交。
+有 gstack：CEO 重新思考问题 → 工程经理画架构图 → 写代码 → Staff 工程师找 Bug → QA 打开真实浏览器测试 → 发布工程师创建 PR → 技术作家更新文档。
 
-你可以这样理解：
+七个命令。一个人。一支团队的产出。
 
-| 没有 gstack | 有 gstack |
-|---|---|
-| 你有一个通用 AI 助手 | 你有 CEO、工程经理、设计师、QA、发布工程师... |
-| 你说"帮我加个功能"，AI 直接写代码 | 你说 `/plan-ceo-review`，AI 先像 CEO 一样重新思考这个功能的本质 |
-| 代码写完直接提交 | 经过 review → QA（真实浏览器测试）→ ship → 文档更新 |
-| AI 是你的副驾驶 | AI 是你的 **团队** |
-
-## 1.2 前置知识：Claude Code Skills 机制
-
-在理解 gstack 之前，你需要知道 Claude Code 的 Skills 是怎么工作的：
-
-### 什么是 Skill？
-
-Skill 就是一个 **Markdown 文件**（`SKILL.md`），放在特定目录下，Claude Code 会自动发现它。
-
-```
-~/.claude/skills/          ← Claude Code 全局 Skills 目录
-├── gstack/                ← gstack 主目录
-│   ├── SKILL.md           ← /browse skill（浏览器）
-│   ├── review/
-│   │   └── SKILL.md       ← /review skill
-│   ├── ship/
-│   │   └── SKILL.md       ← /ship skill
-│   └── ...
-├── review -> gstack/review    ← 符号链接，让 Claude Code 发现它
-├── ship -> gstack/ship
-└── ...
-```
-
-### SKILL.md 的结构
-
-每个 SKILL.md 包含两部分：
-
-```markdown
----
-name: review              ← Skill 名称（用户输入 /review 触发）
-version: 1.1.0
-description: |            ← 描述，让 Claude Code 知道什么时候使用
-  Find bugs that pass CI but blow up in production...
-allowed-tools:            ← 这个 Skill 被允许使用的工具
-  - Bash
-  - Read
-  - Edit
-  - Write
 ---
 
-（下面是给 Claude 的详细指令 — 纯 Markdown）
-```
+# Layer 1：先感受，再理解
 
-**核心原理：** SKILL.md 本质上是一个**超级详细的 System Prompt**。当你输入 `/review` 时，Claude Code 读取这个文件，然后按照里面的指令执行。
+> **TL;DR** — 本层通过一个完整示例和一个动手实验，让你在 15 分钟内**体感**到 gstack 的认知模式切换效果，然后再看 13 个角色的全景。
 
-## 1.3 gstack 解决了什么问题
+## 1.1 一个功能从想法到上线
 
-### 问题 1：AI 写代码没有"流程"
-
-普通使用 Claude Code：你说一句，它做一句。没有 review，没有测试，没有设计审查。
-这就像一个程序员写完代码直接推到生产环境 — 迟早出事。
-
-**gstack 的解决方案：** 给 AI 一套完整的软件工程流程。
-
-```
-想法 → CEO思考 → 工程规划 → 设计审查 → 编码 → Code Review → QA测试 → 发布 → 文档更新
-        ↑           ↑           ↑                    ↑          ↑        ↑        ↑
-  /plan-ceo   /plan-eng   /plan-design         /review      /qa    /ship  /document-release
-```
-
-### 问题 2：AI 没有"眼睛"
-
-Claude Code 能写代码，但它看不到网页长什么样。它不知道按钮是不是真的能点，表单是不是真的能提交。
-
-**gstack 的解决方案：** 内置一个持久化的 Chromium 浏览器。
-`/qa` 和 `/browse` 可以打开真实网页、点击按钮、填表单、截图。
-
-### 问题 3：AI 生成的代码有"AI 味"
-
-AI 生成的 UI 有明显的套路：紫色渐变、三列图标网格、通用的 hero section...
-有经验的人一眼就能看出来"这是 AI 生成的"。
-
-**gstack 的解决方案：** `/plan-design-review` 和 `/design-review` 专门检测 "AI Slop"（AI 垃圾模式），并给出修复建议。
-
-## 1.4 13 个 Skill 角色全景图
-
-gstack 的 13 个 Skill 按照软件开发流程分为 **4 个阶段**：
-
-### 阶段一：规划（Plan Mode）
-
-| Skill | 角色 | 做什么 | 什么时候用 |
-|---|---|---|---|
-| `/plan-ceo-review` | CEO / 创始人 | 重新思考问题本质，找到"10 星产品"，提供 4 种模式：扩展/选择性扩展/保持/缩减 | 开始做新功能之前 |
-| `/plan-eng-review` | 工程经理 | 锁定架构、数据流、状态机、边界情况，画 ASCII 图表 | CEO review 之后，开始编码之前 |
-| `/plan-design-review` | 高级设计师 | 80 项设计审查，检测 AI Slop，推断你的设计系统 | 有 UI 变更的计划时 |
-| `/design-consultation` | 设计伙伴 | 从零开始构建完整设计系统：字体、颜色、间距、布局 | 新项目或没有设计系统时 |
-
-### 阶段二：审查（Review）
-
-| Skill | 角色 | 做什么 | 什么时候用 |
-|---|---|---|---|
-| `/review` | Staff 工程师 | 找出通过 CI 但在生产环境会爆炸的 Bug，自动修复明显问题 | 写完代码之后、提交之前 |
-| `/design-review` | 会编码的设计师 | 在真实网站上运行 80 项视觉审查，然后逐个修复 | 功能实现后，想修 UI 问题时 |
-
-### 阶段三：测试（QA）
-
-| Skill | 角色 | 做什么 | 什么时候用 |
-|---|---|---|---|
-| `/browse` | QA 工程师 | 给 AI 一个真实浏览器，能导航、点击、截图 | 需要浏览网页时 |
-| `/qa` | QA 负责人 | 测试你的应用，发现 Bug，修复它们，生成回归测试 | 功能完成后，想全面测试 |
-| `/qa-only` | QA 报告员 | 和 `/qa` 一样测试，但只报告不修改代码 | 只想要 Bug 报告时 |
-| `/setup-browser-cookies` | 会话管理员 | 从真实浏览器导入 Cookie，测试登录后的页面 | 测试需要登录的页面前 |
-
-### 阶段四：发布（Ship）
-
-| Skill | 角色 | 做什么 | 什么时候用 |
-|---|---|---|---|
-| `/ship` | 发布工程师 | 同步 main，运行测试，审计覆盖率，推送代码，创建 PR | 准备发布时 |
-| `/retro` | 工程经理 | 团队感知的周回顾：每人贡献、测试健康度、发布节奏 | 每周末或想复盘时 |
-| `/document-release` | 技术作家 | 对比 diff 更新所有文档：README、ARCHITECTURE、CHANGELOG 等 | `/ship` 之后、合并之前 |
-
-### 辅助 Skill
-
-| Skill | 做什么 |
-|---|---|
-| `/gstack-upgrade` | 检查并升级 gstack 到最新版本 |
-
-## 1.5 安装与快速体验
-
-### 前置要求
-
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — Anthropic 官方 CLI
-- [Git](https://git-scm.com/)
-- [Bun](https://bun.sh/) v1.0+ — JavaScript 运行时
-
-### 安装（30 秒）
-
-在 Claude Code 中粘贴：
-
-```
-安装 gstack: 运行 git clone https://github.com/garrytan/gstack.git ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup
-```
-
-Claude 会自动完成安装。
-
-### 快速体验
-
-```bash
-# 1. 对任意功能想法运行 CEO review
-/plan-ceo-review
-
-# 2. 对有改动的分支运行 code review
-/review
-
-# 3. 对 staging URL 运行 QA 测试
-/qa https://staging.myapp.com
-
-# 4. 准备发布
-/ship
-```
-
-## 1.6 核心工作流：一个功能从想法到上线
-
-以"给卖家加照片上传功能"为例，完整走一遍 gstack 工作流：
+以"给卖家加照片上传功能"为例：
 
 ```
 你：我想给卖家加照片上传功能。
@@ -202,8 +55,8 @@ Claude 会自动完成安装。
 Claude（CEO 模式）：
   "照片上传"不是真正的功能。真正的任务是帮卖家创建能卖出去的商品列表。
   如果我们能从照片自动识别产品、拉取规格和价格对比、自动生成标题描述呢？
-  那是 10 星产品。"上传照片"只有 3 星。
-  [提出 8 个扩展提案，你挑选 5 个，3 个放到 backlog]
+  那是 10 星产品。"上传照片"只有 3 星。你选哪个？
+  [提出 8 个扩展提案，你逐个决定接受/延后/跳过]
 
 你：/plan-eng-review
 Claude（工程经理模式）：
@@ -211,644 +64,751 @@ Claude（工程经理模式）：
   │ Upload  │───▶│ Classify │───▶│ Enrich   │───▶│ Draft   │
   │ (sync)  │    │ (async)  │    │ (async)  │    │ (async) │
   └─────────┘    └──────────┘    └──────────┘    └─────────┘
-  [架构图、状态图、数据流图]
-  [14 个测试场景、6 个失败模式、3 个安全问题]
+  [架构图、状态图、数据流图、14 个测试场景、6 个失败模式]
 
 你：批准计划，退出 Plan Mode。
-  Claude 写了 2400 行代码，跨 11 个文件 — 大约 8 分钟。
+  Claude 写了 2400 行代码，跨 11 个文件 — 约 8 分钟。
 
 你：/review
 Claude（Staff 工程师模式）：
-  [自动修复] 上传失败时 S3 孤儿文件清理
-  [自动修复] listings.status 缺少索引
-  [询问] hero 图片选择的竞态条件 → 你说修复
-  3 个问题 — 2 个自动修复，1 个手动确认后修复。
+  [AUTO-FIXED] 上传失败时 S3 孤儿文件清理
+  [AUTO-FIXED] listings.status 缺少索引
+  [ASK] hero 图片选择的竞态条件 → 你确认修复
+  3 个问题 — 2 个自动修复，1 个询问后修复。
 
 你：/qa https://staging.myapp.com
 Claude（QA 模式）：
-  [打开真实浏览器，登录，上传照片，点击各种流程]
-  上传 → 分类 → 丰富 → 生成: 端到端 ✓
-  发现 Bug: 第二次上传时预览不清除 — 已修复
+  [打开真实 Chromium 浏览器，登录，上传照片，点击各流程]
+  发现 Bug: 第二次上传时预览不清除 — 已修复并提交
   自动生成回归测试。
 
 你：/ship
 Claude（发布工程师模式）：
-  测试: 42 → 51 (+9 new)
-  覆盖率: 14/14 代码路径 (100%)
+  测试: 42 → 51 (+9 new)  |  覆盖率: 14/14 路径 (100%)
   PR: github.com/you/app/pull/42
 ```
 
-**一个功能。七个命令。** Agent 重新定义了产品方向、画了架构图、写了 2400 行代码、发现了竞态条件、自动修复了两个问题、用真实浏览器做了 QA、发现并修复了一个你不知道的 Bug、写了 9 个测试。
+**关键观察：** 同一个 Claude，在不同 Skill 下表现截然不同。CEO 模式在发散，工程模式在收敛，Review 模式在找漏洞，QA 模式在系统测试。这不是 magic — 这是 Prompt Engineering 的工业化实践。
 
-## 1.7 关键概念速查表
+## 1.2 30 分钟动手实验
 
-| 概念 | 解释 |
-|---|---|
-| **Skill** | 一个 SKILL.md 文件，定义 Claude Code 的特殊行为模式 |
-| **SKILL.md** | 给 Claude 的超级 Prompt，包含详细的工作指令 |
-| **Browse / $B** | gstack 内置的无头浏览器命令行工具 |
-| **Ref（@e1, @e2）** | 浏览器中可交互元素的引用标识符，不用写 CSS 选择器 |
-| **Snapshot** | 页面可访问性树的快照，展示所有可交互元素 |
-| **Plan Mode** | Claude Code 的规划模式，先想清楚再动手 |
-| **Preamble** | 每个 Skill 开头的通用启动代码块 |
-| **Review Readiness Dashboard** | 发布前的检查面板，显示哪些审查已完成 |
-| **AI Slop** | AI 生成的明显套路化 UI 模式（渐变、网格、通用文案） |
-| **Boil the Lake** | gstack 的核心哲学：AI 让完整实现的成本接近零，所以永远选最完整的方案 |
-| **Conductor** | 第三方工具，可以并行运行多个 Claude Code 会话 |
+> 这是最高效的学习方式。gstack 的价值只能通过亲手体验来传递。
+
+### 准备工作（5 分钟）
+
+1. 确保你有 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)、[Git](https://git-scm.com/)、[Bun](https://bun.sh/) v1.0+
+2. 安装 gstack — 在 Claude Code 中粘贴：
+```
+安装 gstack: 运行 git clone https://github.com/garrytan/gstack.git ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup
+```
+
+### 实验 1：感受 CEO 模式（5 分钟）
+
+在你自己的任何项目中：
+1. 让 Claude 先通过 README 或本地文件了解你的项目
+2. 输入 `/plan-ceo-review`
+3. 描述一个你正在考虑的功能或业务计划
+4. 观察 Claude 的"姿态转变" — 它不再是一个顺从的助手，而是在挑战你的前提假设
+
+**你可能会注意到的事情：**
+- 它问的第一个问题是"这是对的问题吗？"而不是"怎么实现？"
+- 即使你描述的不是工程项目（比如商业计划），它的审查框架依然有效
+- 每个问题单独提问，不会一次扔给你 10 个
+
+### 实验 2：感受 Review 模式（5 分钟）
+
+在一个有代码变更的分支上：
+1. 输入 `/review`
+2. 观察它自动获取 diff、读取审查清单、运行两轮检查
+3. 注意它区分了"自动修复"和"询问你"两种处理方式
+
+### 实验 3：感受浏览器 QA（10 分钟）
+
+如果你有一个可以访问的 staging 环境或本地 dev server：
+1. 输入 `/qa http://localhost:3000`（替换为你的 URL）
+2. 观察 Claude 打开真实浏览器、截图、点击按钮、填表单
+3. 如果发现 Bug，它会修复代码、提交、重新验证
+
+### 实验 4：读一个 Skill 的 Prompt（5 分钟）
+
+```bash
+cat ~/.claude/skills/gstack/plan-ceo-review/SKILL.md | head -100
+```
+
+带着你刚才的使用体验来读这个 Prompt。注意它**没有**教 Claude 任何领域知识 — 它定义的是"姿态"和"流程"。
+
+## 1.3 13 个角色全景
+
+gstack 的 13 个 Skill（技能指令）按软件开发生命周期排列：
+
+```
+                        ┌──────────────────────────────┐
+                        │  /plan-ceo-review (CEO)      │
+  规划阶段              │  /plan-eng-review (工程经理)   │
+  Plan Mode             │  /plan-design-review (设计师) │
+                        │  /design-consultation (设计)  │
+                        └──────────┬───────────────────┘
+                                   │
+                        ┌──────────▼───────────────────┐
+  编码阶段              │  Claude Code 正常编码          │
+                        └──────────┬───────────────────┘
+                                   │
+                        ┌──────────▼───────────────────┐
+  审查阶段              │  /review (Staff 工程师)       │
+                        │  /design-review (设计审查)     │
+                        └──────────┬───────────────────┘
+                                   │
+                        ┌──────────▼───────────────────┐
+  测试阶段              │  /qa (QA + 修复)              │
+  (用真实浏览器)        │  /qa-only (只报告不修复)       │
+                        │  /browse (浏览器底层能力)      │
+                        │  /setup-browser-cookies       │
+                        └──────────┬───────────────────┘
+                                   │
+                        ┌──────────▼───────────────────┐
+  发布阶段              │  /ship (发布 + PR)            │
+                        │  /retro (周回顾)              │
+                        │  /document-release (文档更新)  │
+                        └──────────────────────────────┘
+```
+
+**关键洞察：Skill 之间有数据流。**
+- `/plan-eng-review` 的测试计划会自动被 `/qa` 读取
+- `/review` 的 Greptile 评论分类会传递给 `/ship`
+- 所有 plan review 的结果会写入 Review Readiness Dashboard（审查就绪仪表盘），`/ship` 发布前会自动检查
+- `/retro` 读取 commit 历史和 TODOS.md 来生成回顾报告
+
+这不是 13 个独立工具，这是一个有状态的流水线。
+
+### 各角色速览
+
+| 阶段 | Skill | 一句话 |
+|---|---|---|
+| 规划 | `/plan-ceo-review` | 挑战前提假设，找到 10 星版本。4 种模式：扩展/选择性扩展/保持/缩减 |
+| 规划 | `/plan-eng-review` | ASCII 架构图 + 失败模式 + 测试矩阵。强制隐含假设显性化 |
+| 规划 | `/plan-design-review` | 7 个维度评分 0-10，逐个修复到 8+。检测 AI Slop |
+| 规划 | `/design-consultation` | 从零构建设计系统。研究竞品、提出安全选择 vs 冒险选择 |
+| 审查 | `/review` | 找 CI 抓不到但生产会爆的 Bug。明显的自动修复，有歧义的问你 |
+| 审查 | `/design-review` | 80 项视觉审查 + 逐个修复。每个修复一个 commit，可二分 |
+| QA | `/qa` | 打开真实浏览器测试，发现 Bug 就修复 + 提交 + 验证 + 生成回归测试 |
+| QA | `/qa-only` | 同上但只报告不修复。给团队交一份干净的 Bug 报告 |
+| QA | `/browse` | 底层浏览器能力。~100ms/命令，50+ 个命令 |
+| QA | `/setup-browser-cookies` | 从 Chrome/Arc/Brave/Edge 导入 Cookie，测试登录后页面 |
+| 发布 | `/ship` | 同步 main → 跑测试 → 审查覆盖率 → 推送 → 创建 PR。一个命令 |
+| 发布 | `/retro` | 每人贡献分析、测试健康度、发布节奏、增长建议 |
+| 发布 | `/document-release` | 对比 diff 更新所有过时文档 |
 
 ---
 
-# 第二层：高阶篇 — 架构设计与内部原理
+# Layer 2：为什么有效 — 设计原理深度拆解
 
-## 2.1 整体架构：两层系统
+> **TL;DR** — gstack 的核心秘密不是给 AI 领域知识，而是给 AI 一个**严格的认知姿态 + 领域无关的元问题 + 不可跳过的流程**。本层拆解 5 个设计哲学和 3 个核心技术系统。
 
-gstack 本质上是两个独立但互补的系统：
+## 2.1 核心发现：姿态 > 内容
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│                    第一层：Skill 层（纯 Markdown）              │
-│                                                                │
-│   12 个 SKILL.md 文件（由 .tmpl 模板生成）                      │
-│   · 每个 Skill 是一个角色 Prompt                                │
-│   · 零代码，纯文本                                              │
-│   · 通过 {{PLACEHOLDER}} 模板系统从源码自动生成                   │
-│                                                                │
-├────────────────────────────────────────────────────────────────┤
-│                    第二层：Browse 引擎（TypeScript/Bun）         │
-│                                                                │
-│   编译后的二进制 → HTTP 服务器 → Chromium 守护进程               │
-│   · CLI 客户端 (cli.ts)                                        │
-│   · HTTP 服务器 (server.ts, Bun.serve)                         │
-│   · 浏览器管理器 (browser-manager.ts, Playwright)               │
-│   · Cookie 导入系统 (cookie-import-browser.ts)                  │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
+这是理解 gstack **为什么有效**的钥匙。
+
+我用 `/plan-ceo-review` 审查了一个商业计划 — 不是工程项目，是商业模式。这个 Skill 的 Prompt 里完全没有提到商业领域。但它在一分钟内给了一个真的能帮我提升收入的解决方案。
+
+我仔细读了 Prompt 源码（约 600 行），发现它做了三件事：
+
+### 第一：定义审查的姿态（Posture），而不是审查的内容
+
+```markdown
+你不是来给这个计划盖橡皮章的。你是来让它变得卓越的，
+在每颗地雷爆炸之前把它找出来。
 ```
 
-**为什么分两层？**
+它没有告诉 AI 要审查什么指标。它告诉 AI 的是：**你要以什么态度面对这个计划** — 严厉的、对抗性的、不留情面的。
 
-- **Skill 层**可以被任何人修改（只需要会写 Markdown），不需要编程知识
-- **Browse 引擎**提供浏览器能力，是唯一需要编译的部分
-- 大部分 Skill 不需要 Browse 引擎也能工作（如 `/review`、`/ship`、`/retro`）
+这个姿态放在工程项目上管用，放在商业计划上也管用。因为它约束的是 AI 的**行为模式**，跟领域无关。
 
-## 2.2 Browse 浏览器引擎：核心技术深度拆解
+四种姿态对应四种模式：
 
-### 为什么需要自建浏览器？
+| 模式 | 姿态隐喻 | Prompt 原文 |
+|---|---|---|
+| 范围扩展 | 你在建造一座大教堂 | "You are building a cathedral. You have permission to dream." |
+| 选择性扩展 | 你是有品味的严谨审查者 | "Hold scope as baseline, surface every expansion opportunity" |
+| 保持范围 | 你是防弹衣制造商 | "Make it bulletproof. Do not silently reduce OR expand." |
+| 范围缩减 | 你是外科医生 | "Find the minimum viable version. Cut everything else. Be ruthless." |
 
-Claude Code 自身没有"看网页"的能力。gstack 通过内置一个持久化 Chromium 浏览器解决了这个问题。
+### 第二：Step 0 的问题是领域无关的元问题（Meta-Questions）
 
-### 架构图
+```
+1. 这是对的问题吗？
+2. 真正的用户/商业成果是什么？这个计划是最直接的路径，还是在解决一个代理问题？
+3. 如果什么都不做会怎样？这是真实的痛点，还是假想的？
+4. 12 个月后的理想状态是什么？这个计划在靠近还是远离那个状态？
+```
+
+没有一个词提到工程或商业。它们问的是更底层的事情：**你确定你在解决对的事情吗？**
+
+当我把商业计划丢给这个工具时，Claude 读到的指令是"先挑战前提，再审查细节"，然后它用**自己已有的商业知识**按照这个指令执行。
+
+### 第三：工程术语被 Claude 自动迁移到其他领域
+
+10 个审查环节的原始语境是工程的："架构审查""单点故障""回滚计划"。但当输入是商业计划时：
+
+| Prompt 原始术语 | Claude 自动迁移到商业领域 |
+|---|---|
+| 架构审查 | 业务结构审查 |
+| 单点故障 | 业务依赖的单一渠道 |
+| 回滚计划 | 如果这个方向不行怎么退出 |
+| 数据流的影子路径 | 收入来源的脆弱性分析 |
+| 错误恢复 | 失败后的止损方案 |
+
+这个迁移不是 Prompt 写的，是 Claude 自己做的。但 Prompt 给了一个**不允许跳过任何环节的完整清单结构**，Claude 沿着这个结构逐步审查。
+
+**这就是 gstack 的核心秘密：**
+
+> 它没有给 AI 领域知识。它给了 AI 一个严厉的姿态、一组领域无关的元问题、和一个不允许跳过任何环节的流程。AI 自己填充领域知识。
+
+### 为什么这比给 AI 领域知识更强？
+
+因为你给的领域知识永远是有限的，而 LLM 训练数据中的知识是海量的。
+
+如果你在 Prompt 里写"检查这 10 个商业指标"，Claude 就只检查那 10 个。但如果你写"用最大的严谨度检查每一个潜在失败点"，Claude 会调用它**所有**相关知识来执行这条指令。
+
+**Prompt 的最高形态不是给 AI 更多信息，而是给 AI 正确的行为框架，让它自己调用已有的海量知识。**
+
+## 2.2 五个设计哲学
+
+### 哲学 1：Boil the Lake（煮干湖水） — 完整性原则
+
+> AI 让完整实现的边际成本接近零。80% 方案和 100% 方案的差距可能只有 70 行代码 — 用 AI 写这 70 行只需几秒钟。**永远选 100%。**
+
+| 任务类型 | 人类团队 | AI+gstack | 压缩比 |
+|---|---|---|---|
+| 脚手架/模板代码 | 2 天 | 15 分钟 | ~100x |
+| 写测试 | 1 天 | 15 分钟 | ~50x |
+| 功能实现 | 1 周 | 30 分钟 | ~30x |
+| Bug 修复 + 回归测试 | 4 小时 | 15 分钟 | ~20x |
+
+gstack 在每个 AskUserQuestion（提问环节）中都显示"完整度评分（Completeness Score）"：
+- **10/10** = 完整实现（所有边界情况、完整覆盖）— 这是"湖"，可以煮干
+- **7/10** = 覆盖正常路径但跳过部分边界 — 别选这个
+- **3/10** = 快捷方式 — 绝对别选
+- "海洋"（从头重写整个系统）不属于讨论范围
+
+### 哲学 2：认知模式切换 — Latent Space Activation（潜在空间激活）
+
+`/plan-ceo-review` 的 Prompt 里提到了真实的人和框架：
+
+```markdown
+## Cognitive Patterns — How Great CEOs Think
+这些不是清单项目。它们是思维本能。不要列举它们；内化它们。
+
+1. 分类本能 — 按可逆性 × 影响力分类每个决策（Bezos 单向门/双向门）
+2. 偏执扫描 — 持续扫描战略拐点、文化漂移、人才流失（Grove）
+3. 反转反射 — 对每个"我们怎么赢？"也问"什么会让我们失败？"（Munger）
+4. 聚焦即减法 — Jobs 从 350 个产品砍到 10 个
+5. 速度校准 — 快是默认。只为不可逆+高影响决策减速。70% 信息就够了（Bezos）
+...
+```
+
+这不是让 Claude 背公式。指令明确说了"Don't enumerate them; internalize them."
+
+**原理：** LLM 的训练数据中包含了大量关于 Bezos、Munger、Grove 思维方式的文本。提到这些名字和框架等于在 LLM 的潜在空间（Latent Space）中**激活**了这些思维模式的神经路径。Claude 不是在"背诵" Bezos 的决策框架 — 它是在**像 Bezos 那样思考**。
+
+`/plan-eng-review` 同样激活了不同的工程思维：Brooks（本质复杂度 vs 偶然复杂度）、Beck（先让变更变容易，再做变更）、Google SRE（错误预算）。
+
+### 哲学 3：Fix-First（先修后报） — 动作优先于报告
+
+传统 Code Review 工具：列出 20 个发现，你自己决定怎么办。
+gstack 的 `/review`：
+
+```
+[AUTO-FIXED] app/models/post.rb:42 — 死代码 → 已删除
+[AUTO-FIXED] app/services/upload.rb:88 — N+1 查询 → 已优化
+[ASK] app/services/payment.rb:47 — 竞态条件：并发扣款可能重复
+  → A) 加数据库级锁  B) 跳过
+```
+
+分类规则写在 `review/checklist.md` 里：
+- **机械修复**（死代码、N+1 查询、缺失索引）→ 自动修复，告诉你做了什么
+- **需要判断**（安全问题、竞态条件、设计决策）→ 问你，给推荐选项
+
+### 哲学 4：面向 Agent 的错误消息
+
+gstack 的浏览器引擎不是给人用的 — 它是给 AI Agent 用的。每条错误消息都包含"下一步该做什么"：
+
+```
+传统：   "Element not found"
+gstack： "Element not found or not interactable.
+          Run `snapshot -i` to see available elements."
+
+传统：   "Timeout"
+gstack： "Navigation timed out after 30s.
+          The page may be slow or the URL may be wrong."
+```
+
+Agent 读到这条消息后能**自行恢复**，不需要人类干预。这让 `/qa` 可以自动运行 20+ 步的测试流程而不中断。
+
+### 哲学 5：一次提问，一个决策
+
+gstack 的所有 Skill 共享一个统一的 AskUserQuestion 格式：
+
+```
+1. 重新定位：说明项目名、当前分支、当前任务（假设你 20 分钟没看这个窗口了）
+2. 大白话解释：聪明的 16 岁高中生能听懂。不用函数名、不用行话
+3. 推荐：推荐选择 X，因为___
+4. 选项：A) ... B) ... C) ...
+```
+
+关键规则：**一个问题 = 一次提问。** 永远不把多个决策合并成一次提问。这确保了用户在多个会话窗口之间切换时不会迷路。
+
+## 2.3 Browse 浏览器引擎：关键工程决策
+
+> **TL;DR** — gstack 的浏览器不是每次冷启动的，而是一个持久化的 Chromium 守护进程（Daemon），通过 localhost HTTP 通信。这让每个命令从 2-3 秒降到 ~100ms，且 Cookie/登录态跨命令保持。
+
+### 架构
 
 ```
 Claude Code                     gstack Browse
 ─────────                      ─────────────
-                               ┌───────────────────────┐
-  Tool call: $B snapshot -i    │  CLI (编译后的二进制)    │
-  ─────────────────────────→   │  · 读取状态文件          │
-                               │  · POST /command        │
-                               │    到 localhost:PORT     │
+                               ┌──────────────────────┐
+  Bash: $B snapshot -i    →    │  CLI (编译二进制 58MB) │
+                               │  读 .gstack/browse.json│
+                               │  POST /command         │
                                └──────────┬────────────┘
-                                          │ HTTP
+                                          │ HTTP + Bearer Token
                                ┌──────────▼────────────┐
-                               │  Server (Bun.serve)    │
-                               │  · 分发命令             │
-                               │  · 操控 Chromium        │
-                               │  · 返回纯文本           │
+                               │  Bun.serve() 服务器    │
+                               │  命令分发 + Chromium 操控│
                                └──────────┬────────────┘
-                                          │ CDP (Chrome DevTools Protocol)
+                                          │ Playwright (CDP)
                                ┌──────────▼────────────┐
-                               │  Chromium (无头模式)    │
-                               │  · 持久化标签页          │
-                               │  · Cookie 跨命令保持     │
-                               │  · 30 分钟空闲超时       │
+                               │  Chromium（无头模式）   │
+                               │  持久化 tabs + cookies  │
+                               │  30 分钟空闲自动退出    │
                                └────────────────────────┘
 ```
 
-### 关键设计决策
+### 为什么是守护进程而不是每次冷启动？
 
-#### 1. 守护进程模式（vs 每次冷启动）
-
-| 方案 | 延迟 | 状态 |
+| | 冷启动模式 | 守护进程模式（gstack） |
 |---|---|---|
-| 每次冷启动 Chromium | 2-3 秒/命令 | 每次丢失（Cookie、登录态全没） |
-| **守护进程（gstack 选择）** | **~100ms/命令** | **持久化（Cookie、标签页保留）** |
+| 每命令延迟 | 2-3 秒 | ~100ms |
+| 20 步 QA 额外开销 | 40-60 秒 | ~0 |
+| Cookie/登录态 | 每次丢失 | 跨命令保持 |
+| localStorage | 每次丢失 | 跨命令保持 |
 
-第一次调用启动浏览器约 3 秒，之后每次命令只需 ~100-200ms。30 分钟无活动自动关闭。
+### Ref 系统：AI 怎么"指"网页上的元素？
 
-#### 2. 为什么用 Bun 而不是 Node.js？
+这是 gstack 最精妙的设计。
 
-| 原因 | 详细说明 |
-|---|---|
-| **编译二进制** | `bun build --compile` 生成一个 ~58MB 可执行文件，无需 node_modules |
-| **内置 SQLite** | Cookie 解密需要读 Chromium 的 SQLite 数据库，Bun 原生支持 |
-| **原生 TypeScript** | 开发时直接运行 .ts 文件，无需编译步骤 |
-| **内置 HTTP 服务器** | `Bun.serve()` 轻量、快速，不需要 Express |
+**问题：** AI 要点击网页上的按钮，怎么告诉浏览器"点哪个"？用 CSS 选择器？AI 很容易猜错。
 
-#### 3. Ref 系统（@e1, @e2, @c1）
-
-这是 gstack 最精妙的设计之一。
-
-**问题：** AI 要和网页交互，怎么指定"点哪个按钮"？
-
-**传统方案：** CSS 选择器（`#submit-btn`）或 XPath — 但 AI 很容易猜错。
-
-**gstack 的方案：** Ref 引用系统。
+**gstack 的方案：** 先跑 `snapshot`（快照），给每个可交互元素分配一个编号（@e1, @e2...），然后用编号操作。
 
 ```bash
-# 1. 运行 snapshot，获取可交互元素列表
-$B snapshot -i
-# 输出：
-#   @e1 [heading] "Welcome" [level=1]
-#   @e2 [textbox] "Email"
-#   @e3 [button] "Submit"
+$B snapshot -i           # 拍快照
+# @e1 [heading] "Welcome"
+# @e2 [textbox] "Email"
+# @e3 [button] "Submit"
 
-# 2. 用 @ref 操作元素（不需要猜选择器）
-$B fill @e2 "test@example.com"
+$B fill @e2 "test@example.com"   # 用编号操作
 $B click @e3
 ```
 
-**内部实现原理：**
+**为什么不在 DOM 里注入 `data-ref` 属性？**
+- 很多网站的 CSP（内容安全策略）禁止外部修改 DOM
+- React/Vue 的水合（Hydration）过程会删掉注入的属性
+- Shadow DOM 从外部不可达
 
-```
-1. Agent 运行: $B snapshot -i
-2. Server 调用 Playwright 的 page.accessibility.snapshot()
-3. 解析器遍历 ARIA 可访问性树
-4. 为每个元素分配 @e1, @e2, @e3... 编号
-5. 为每个 Ref 构建 Playwright Locator: getByRole(role, { name }).nth(index)
-6. 存储 Map<string, RefEntry> 映射
+gstack 用 Playwright 的 Locator（定位器），基于 ARIA 可访问性树，完全在 DOM 外部工作。
 
-后续操作：
-7. Agent 运行: $B click @e3
-8. Server 查找 @e3 → 获取 Locator → locator.click()
-```
+**过期检测：** SPA 应用可以在不触发导航的情况下改变页面（如 React Router）。gstack 在使用每个 Ref 前做一次 `count()` 检查（~5ms），如果元素不存在了就立刻报错，而不是等 Playwright 的 30 秒超时。
 
-**为什么用 Locator 而不是 DOM 注入（如注入 `data-ref="@e1"`）？**
-
-| 问题 | 解释 |
-|---|---|
-| CSP 策略 | 很多网站的安全策略禁止外部脚本修改 DOM |
-| React/Vue 水合 | 前端框架的协调机制会删掉注入的属性 |
-| Shadow DOM | 从外部无法操作 Shadow Root 内的元素 |
-
-Playwright Locator 在 DOM 之外工作，不修改页面，不受这些限制。
-
-#### 4. Ref 生命周期与过期检测
-
-```
-· 页面导航（framenavigated 事件）→ 所有 Ref 自动清除（必须重新 snapshot）
-· SPA 路由切换（无导航事件）→ resolveRef() 做异步 count() 检查
-  - count === 0 → 抛出 "Ref @e3 is stale — element no longer exists"
-  - count > 0 → 正常使用
-  - 开销：~5ms（vs Playwright 默认 30 秒超时）
-```
-
-#### 5. 安全模型
+### 安全模型
 
 | 层面 | 措施 |
 |---|---|
-| 网络 | 绑定 localhost，不可从外部访问 |
-| 认证 | 每次启动生成随机 UUID Token，文件权限 0o600（只有 owner 可读） |
-| Cookie | 在内存中解密，从不写入磁盘明文；从不显示 Cookie 值 |
-| 注入防护 | 浏览器列表硬编码，路径不接受用户输入，用参数数组而非字符串拼接调用命令 |
+| 网络隔离 | 绑定 localhost，不可外部访问 |
+| 认证 | 每次启动生成 UUID Token，状态文件权限 0o600 |
+| Cookie 安全 | 内存中解密，从不写入磁盘明文，不显示 Cookie 值 |
+| 注入防护 | 浏览器列表硬编码，用参数数组不用字符串拼接 |
 
-#### 6. 命令分类系统
+### 为什么用 Bun 而不是 Node.js？
 
-所有浏览器命令按副作用分为三类：
+| 原因 | 细节 |
+|---|---|
+| 编译二进制 | `bun build --compile` → 单文件 58MB 可执行，无需 node_modules |
+| 原生 SQLite | Cookie 解密需要读 Chromium 的 SQLite 数据库 |
+| 原生 TypeScript | 开发时直接跑 .ts，无需编译 |
+| 内置 HTTP | `Bun.serve()` 够用，不需要 Express |
 
-```typescript
-READ 命令（无副作用，可安全重试）：
-  text, html, links, console, cookies, accessibility, forms, ...
+## 2.4 模板系统：Prompt 即代码
 
-WRITE 命令（会改变页面状态，不可幂等）：
-  goto, click, fill, press, scroll, select, upload, ...
+> **TL;DR** — SKILL.md 不是手写的，而是从 `.tmpl` 模板 + 源码元数据自动生成的。这确保了 Prompt 中的命令参考永远和代码同步。
 
-META 命令（服务器级操作）：
-  snapshot, screenshot, tabs, chain, stop, restart, ...
-```
+### 手写文档的问题
 
-这个分类驱动了命令分发逻辑：
-```typescript
-if (READ_COMMANDS.has(cmd))  → handleReadCommand(cmd, args, bm)
-if (WRITE_COMMANDS.has(cmd)) → handleWriteCommand(cmd, args, bm)
-if (META_COMMANDS.has(cmd))  → handleMetaCommand(cmd, args, bm, shutdown)
-```
+文档说有某个命令 → 代码已经删了 → Agent 执行失败。
+代码加了新命令 → 文档没更新 → Agent 不知道可以用。
 
-#### 7. 错误设计：面向 AI Agent 而非人类
+### gstack 的方案
 
 ```
-传统报错：          "Element not found"
-gstack 报错：       "Element not found or not interactable.
-                     Run `snapshot -i` to see available elements."
-
-传统报错：          "Timeout"
-gstack 报错：       "Navigation timed out after 30s. The page may be
-                     slow or the URL may be wrong."
-```
-
-每个错误消息都告诉 Agent **下一步该做什么**。Agent 能自行恢复，无需人类干预。
-
-#### 8. 日志架构
-
-```
-三个环形缓冲区（各 50,000 条，O(1) 写入）：
-  Console 日志  → CircularBuffer → 每秒异步写入 .gstack/browse-console.log
-  Network 日志  → CircularBuffer → 每秒异步写入 .gstack/browse-network.log
-  Dialog 日志   → CircularBuffer → 每秒异步写入 .gstack/browse-dialog.log
-```
-
-**设计优势：**
-- HTTP 处理永远不会被磁盘 I/O 阻塞
-- 内存有界（50K × 3 缓冲区）
-- 磁盘文件为追加模式，外部工具可读
-- 命令读取的是内存缓冲区，不是磁盘
-
-## 2.3 SKILL.md 模板系统：Prompt 即代码
-
-### 问题：手写文档会和代码脱节
-
-如果 SKILL.md 手动维护，迟早会出现：文档说有某个命令，但代码已经删了；代码加了新命令，但文档没更新。
-
-### 解决方案：从源码自动生成
-
-```
-SKILL.md.tmpl          ← 人工编写的 Prompt 模板（含占位符）
+SKILL.md.tmpl    ← 人工写的 Prompt + 占位符
        ↓
-gen-skill-docs.ts      ← 构建脚本（读取源码元数据）
+gen-skill-docs.ts ← 构建脚本（读源码元数据）
        ↓
-SKILL.md               ← 自动生成的最终文件（提交到 git）
+SKILL.md          ← 自动生成，提交到 git
 ```
 
-### 占位符系统
+占位符示例：
 
-| 占位符 | 数据来源 | 生成内容 |
+| 占位符 | 数据来源 | 效果 |
 |---|---|---|
-| `{{COMMAND_REFERENCE}}` | `commands.ts` | 按分类的命令表格 |
-| `{{SNAPSHOT_FLAGS}}` | `snapshot.ts` | Flag 参考和示例 |
-| `{{PREAMBLE}}` | `gen-skill-docs.ts` | 通用启动代码：更新检查、会话追踪、贡献者模式 |
-| `{{BROWSE_SETUP}}` | `gen-skill-docs.ts` | 浏览器二进制发现 + 设置指令 |
-| `{{BASE_BRANCH_DETECT}}` | `gen-skill-docs.ts` | 动态检测 PR 目标分支 |
-| `{{QA_METHODOLOGY}}` | `gen-skill-docs.ts` | 共享 QA 方法论块 |
-| `{{DESIGN_METHODOLOGY}}` | `gen-skill-docs.ts` | 共享设计审查方法论 |
-| `{{REVIEW_DASHBOARD}}` | `gen-skill-docs.ts` | Review 就绪仪表盘 |
-| `{{TEST_BOOTSTRAP}}` | `gen-skill-docs.ts` | 测试框架检测与自动搭建 |
+| `{{COMMAND_REFERENCE}}` | `commands.ts` 注册表 | 命令存在则出现在文档，不存在则消失 |
+| `{{SNAPSHOT_FLAGS}}` | `snapshot.ts` 元数据 | Flag 文档自动和解析器同步 |
+| `{{PREAMBLE}}` | 生成器 | 所有 Skill 共享的启动代码 |
+| `{{QA_METHODOLOGY}}` | 生成器 | `/qa` 和 `/qa-only` 共享 QA 方法论 |
 
-### 为什么提交生成文件而不是运行时生成？
+**为什么提交生成文件？** 因为 Claude 在调用 Skill 时直接读 SKILL.md —— 没有构建步骤。同时 CI 可以用 `--dry-run` 验证文件是否最新。
 
-1. **Claude 在加载 Skill 时读取 SKILL.md** — 没有构建步骤
-2. **CI 可以验证新鲜度** — `gen:skill-docs --dry-run` + `git diff --exit-code`
-3. **git blame 有效** — 可以追踪每个命令何时添加
+### 模板编写的核心规则
 
-### Preamble（前言）系统
+如果你想修改 gstack 或写自己的模板化 Skill：
 
-每个 Skill 都以一个通用的 `{{PREAMBLE}}` 代码块开始，在一次 bash 调用中处理 4 件事：
+1. **用自然语言传递状态** — 每个 bash 代码块在独立 shell 中运行，变量不能跨块
+2. **动态检测分支** — 不要硬编码 `main`，用 `{{BASE_BRANCH_DETECT}}`
+3. **条件逻辑用英语** — "If X, do Y. Otherwise, do Z." 而不是嵌套 if/elif
+4. **每个代码块独立可运行** — 不依赖上一个块的状态
 
-1. **更新检查** — 是否有新版本
-2. **会话追踪** — 记录活跃会话数；3+ 个会话时进入"ELI16 模式"（每个问题都重新说明上下文）
-3. **贡献者模式** — 是否开启自动 Bug 报告
-4. **AskUserQuestion 格式** — 统一的提问格式：上下文、问题、推荐选项
+## 2.5 三层测试金字塔
 
-### 模板编写规则（重要！）
-
-如果你想开发自己的 Skill，这些是关键规则：
-
-```
-✅ 用自然语言传递状态（不要用 shell 变量跨代码块）
-✅ 动态检测分支名（不要硬编码 main）
-✅ 每个 bash 代码块独立可运行
-✅ 用英语表达条件逻辑（不要嵌套 if/elif/else）
-
-❌ 不要在代码块间传递 shell 变量（每个块是独立 shell）
-❌ 不要硬编码分支名
-❌ 不要用复杂的 bash 条件分支
-```
-
-## 2.4 测试金字塔：三层验证体系
-
-| 层级 | 命令 | 成本 | 速度 | 验证内容 |
-|---|---|---|---|---|
-| **Tier 1 — 静态验证** | `bun test` | 免费 | <5 秒 | 解析 SKILL.md 中所有 `$B` 命令，对照命令注册表验证；检查 snapshot flag；验证 SKILL.md 正确性 |
-| **Tier 2 — E2E 测试** | `bun run test:e2e` | ~$3.85 | ~20 分钟 | 启动真实 Claude 会话，运行每个 Skill，扫描错误 |
-| **Tier 3 — LLM 评审** | `bun run test:evals` | ~$0.15 | ~30 秒 | Claude Sonnet 对生成的文档评分：清晰度/完整度/可操作性 |
-
-### Tier 1 的精妙之处
-
-它从 SKILL.md 中提取每一个 `$B` 命令调用，然后对照 `commands.ts` 中的命令注册表验证。如果模板里写了一个不存在的命令，测试立刻失败。
-
-### Tier 2 的 Session Runner
-
-E2E 测试的核心难题：如何在测试中运行一个完整的 Claude Code 会话？
-
-```
-解决方案（session-runner.ts）：
-1. 把 Prompt 写入临时文件（避免 shell 转义问题）
-2. 用 sh -c 'cat prompt | claude -p --output-format stream-json --verbose' 启动子进程
-3. 从 stdout 流式读取 NDJSON 以获取实时进度
-4. 设置超时竞赛
-5. 解析完整的 NDJSON 转录为结构化结果
-```
-
-### Diff-based 测试选择
-
-每个测试声明它依赖的文件。运行 `bun run test:e2e` 时，系统检查你的 git diff，只运行依赖文件被修改的测试。只改了 `/retro` 的分支跑 2 个测试而不是 31 个。
-
-## 2.5 设计哲学拆解
-
-### 哲学 1：Boil the Lake（煮干湖水）
-
-> AI 让完整实现的边际成本接近零。当你可以选择 80% 方案（省 70 行代码）或 100% 方案时，**永远选 100%**。
-
-| 任务类型 | 人类团队时间 | CC+gstack 时间 | 压缩比 |
+| 层级 | 成本 | 速度 | 验证什么 |
 |---|---|---|---|
-| 脚手架/模板 | 2 天 | 15 分钟 | ~100x |
-| 写测试 | 1 天 | 15 分钟 | ~50x |
-| 功能实现 | 1 周 | 30 分钟 | ~30x |
-| Bug 修复 + 回归测试 | 4 小时 | 15 分钟 | ~20x |
-| 架构/设计 | 2 天 | 4 小时 | ~5x |
+| **Tier 1** 静态验证 | 免费 | <5 秒 | 从 SKILL.md 提取所有 `$B` 命令，对照注册表验证 |
+| **Tier 2** E2E 测试 | ~$3.85 | ~20 分钟 | 启动真实 Claude 会话（`claude -p` 子进程），运行每个 Skill |
+| **Tier 3** LLM 评审 | ~$0.15 | ~30 秒 | Claude Sonnet 对文档评分：清晰度/完整度/可操作性，每项 ≥4/5 |
 
-**Lake vs Ocean：**
-- Lake（湖）= 可以煮干 = 100% 测试覆盖、完整功能、所有边界情况
-- Ocean（海洋）= 不要尝试 = 从头重写系统、修改你不控制的依赖
+**精妙之处：** 95% 的问题被免费的 Tier 1 捕获。Tier 2/3 只用来验证"Skill 在真实 Claude 会话中是否正常工作"和"文档质量是否足够"。
 
-### 哲学 2：认知模式切换
+**Diff-based 选择：** 每个测试声明它依赖的文件。只改了 `/retro` 的分支只跑 2 个测试，不是 31 个。`bun run eval:select` 可以预览。
 
-gstack 的核心洞察：**同一个 LLM，给它不同的角色 Prompt，产出质量天差地别。**
+---
 
-- CEO 模式 = 发散思维，重新定义问题
-- 工程经理模式 = 收敛思维，锁定架构
-- Staff 工程师模式 = 偏执思维，找漏洞
-- QA 模式 = 系统思维，完整测试
+# Layer 3：从零开发你自己的 Skill
 
-这不是 Magic，而是 Prompt Engineering 的工业化实践。
+> **TL;DR** — 本层是一个从零到部署的完整教程。你会学到 Skill 的机制、7 个可复用的设计模式、和 5 个常见误区。
 
-### 哲学 3：Fix-First（先修复再汇报）
+## 3.1 Claude Code Skill 是什么
 
-`/review` 的发现不是列出来就完了：
-- 明显的机械修复（死代码、N+1 查询）→ **自动修复**
-- 真正有歧义的问题（安全、竞态条件）→ **询问你**
+Skill 就是一个 Markdown 文件（`SKILL.md`），放在 `~/.claude/skills/` 目录下。
 
-### 哲学 4：Latent Space Activation（潜在空间激活）
+```
+~/.claude/skills/
+├── my-skill/
+│   └── SKILL.md      ← Claude Code 发现这个文件 → 注册为 /my-skill
+├── another-skill/
+│   └── SKILL.md      ← 注册为 /another-skill
+└── gstack/
+    ├── review/
+    │   └── SKILL.md   ← 通过符号链接注册为 /review
+    └── ...
+```
 
-`/plan-ceo-review` 不是给 Claude 一个检查清单。它提到真实人物和框架：
+当你输入 `/my-skill` 时，Claude Code 读取这个 SKILL.md 文件，把它作为**额外的系统指令**注入到当前对话中。本质上就是一个可切换的超级 System Prompt。
 
-> "Bezos 的单向门决策、Grove 的偏执扫描、Munger 的逆向思维、Chesky 的 11 星体验..."
+## 3.2 最小可行 Skill：5 分钟写一个
 
-这不是让 Claude 背公式。这是**触发 LLM 训练数据中关于这些人思维方式的深层模式**。指令是"内化这些，不要列举它们"。
+```bash
+mkdir -p ~/.claude/skills/my-reviewer
+```
 
-### 哲学 5：错误消息面向 Agent
-
-传统软件的错误消息是给人看的。gstack 的错误消息是给 AI Agent 看的。每条消息都包含"下一步该做什么"的具体指令。
-
-## 2.6 如何参考 gstack 开发自己的 Skills
-
-### 最小可行 Skill
-
-创建文件 `~/.claude/skills/my-skill/SKILL.md`：
+创建 `~/.claude/skills/my-reviewer/SKILL.md`：
 
 ```markdown
 ---
-name: my-skill
+name: my-reviewer
 version: 0.1.0
 description: |
-  描述你的 Skill 做什么。Claude Code 用这个决定什么时候建议使用它。
+  审查当前分支的代码变更，专注于安全问题和性能问题。
 allowed-tools:
   - Bash
   - Read
-  - Edit
+  - Grep
 ---
 
-# My Skill
+# 代码安全与性能审查
 
-## 步骤 1：了解情况
+你是一个偏执的安全工程师。你的工作不是赞美代码，而是找出每一个潜在的安全漏洞和性能瓶颈。
 
-先读取项目的 README.md 和 package.json 来了解项目上下文。
+## 步骤 1：获取变更
 
-## 步骤 2：做某件事
-
-（你的详细指令...）
-
-## 步骤 3：验证
-
-运行测试确保一切正常：
 ```bash
-npm test
+git diff main --stat
+git diff main
 ```
+
+## 步骤 2：安全审查
+
+对 diff 中的每个文件，检查：
+1. SQL 注入：任何字符串拼接的查询
+2. XSS：任何未转义的用户输入渲染
+3. 认证绕过：任何缺少权限检查的端点
+4. 秘密泄露：任何硬编码的密钥或密码
+
+## 步骤 3：性能审查
+
+1. N+1 查询：循环中的数据库调用
+2. 缺失索引：WHERE 条件中的未索引字段
+3. 大量内存分配：一次性加载整个表
+
+## 输出格式
+
+对每个发现：
+- [CRITICAL/HIGH/MEDIUM] 文件:行号 — 问题描述
+- 建议修复方案
 ```
 
-这就是全部。一个 Markdown 文件。
+**测试它：** 在一个有代码变更的项目中输入 `/my-reviewer`。
 
-### 从 gstack 学到的 Skill 设计模式
+**恭喜 — 你刚刚创建了一个 Skill。** 本质上就是这么简单。
 
-#### 模式 1：角色扮演（Persona）
+## 3.3 从 gstack 提取的 7 个设计模式
+
+### 模式 1：姿态定义（Posture Definition）
+
+不要告诉 AI **检查什么**。告诉 AI **以什么态度检查**。
 
 ```markdown
-# 你是一个偏执的 Staff 工程师
-你的工作不是赞美代码，而是找出会在生产环境爆炸的问题。
+# ❌ 弱 Prompt
+检查代码中的安全问题、性能问题和可维护性问题。
+
+# ✅ 强 Prompt（gstack 风格）
+你不是来给这个代码盖橡皮章的。你是来阻止生产事故的。
+想象你是 on-call 工程师，凌晨 3 点被这段代码叫醒了。
+你会问什么问题？
 ```
 
-gstack 的每个 Skill 都在开头定义了 Claude 应该"扮演"的角色。
+姿态约束的是行为模式，不是知识范围。这让同一个 Prompt 可以跨领域工作。
 
-#### 模式 2：Preamble（通用启动块）
+### 模式 2：领域无关的元问题（Meta-Questions）
+
+gstack Step 0 的问题没有提到任何具体领域：
+
+```markdown
+1. 这是对的问题吗？
+2. 如果什么都不做会怎样？
+3. 12 个月后的理想状态是什么？
+```
+
+这些问题迫使 AI 在执行任何审查之前先**挑战前提**。你可以在任何 Skill 中复用这个模式。
+
+### 模式 3：环境感知的 Preamble（前言启动块）
 
 ```markdown
 ## 前言（首先运行）
 
 ```bash
-# 收集环境信息
-echo "BRANCH: $(git branch --show-current)"
-echo "PROJECT: $(basename $(git rev-parse --show-toplevel))"
+echo "BRANCH: $(git branch --show-current 2>/dev/null || echo unknown)"
+echo "PROJECT: $(basename $(git rev-parse --show-toplevel 2>/dev/null) || echo unknown)"
 ```
 
-在你的 Prompt 指令开始之前，先让 Agent 了解当前环境。
+在指令开始前，先让 Agent 感知当前环境。gstack 的 Preamble 还做了：更新检查、多会话计数（3+ 个窗口时进入"简化解释"模式）、贡献者模式。
 ```
 
-#### 模式 3：AskUserQuestion 格式一致性
+### 模式 4：一次一问（One Question Per Ask）
 
 ```markdown
-每次提问必须包含：
-1. 上下文重述（项目名 + 当前分支 + 当前任务）
-2. 简单解释（聪明的 16 岁高中生能看懂）
-3. 推荐选项 + 原因
-4. 选项列表（A/B/C）
+## 关键规则
+- 一个问题 = 一次提问。永远不要合并
+- 假设用户 20 分钟没看这个窗口
+- 每个问题附推荐选项 + 理由
+- 用户回复前不要继续下一步
 ```
 
-#### 模式 4：自检与反馈循环
+这保证了在多窗口切换时不会迷路。
+
+### 模式 5：不可跳过的流程（Non-Skippable Checklist）
 
 ```markdown
-做完操作后，验证结果。
-如果失败了，诊断原因并重试。
-不要盲目继续。
+## 关键规则
+不允许跳过任何环节。如果某个环节没有发现问题，
+明确说明"此环节无问题"然后继续。
 ```
 
-#### 模式 5：模板占位符（DRY）
+这迫使 AI 对**每一步**都产出结论，而不是偷懒跳过看起来不重要的部分。
 
-如果多个 Skill 共享同一段逻辑（如 QA 方法论），提取为模板占位符，在构建时注入。
-
-### 进阶：添加浏览器能力
-
-如果你的 Skill 需要浏览网页：
+### 模式 6：Fix-First 分类
 
 ```markdown
-allowed-tools:
-  - Bash
-  - Read
+对每个发现，分类为：
+- AUTO-FIX（机械修复）：直接修复，输出 [AUTO-FIXED] 文件:行 问题 → 做了什么
+- ASK（需要判断）：批量提问，附推荐
+```
 
-## 设置
+让 AI 自己能处理的问题先处理掉，只把真正需要人类判断的问题抛出来。
+
+### 模式 7：模板占位符（DRY Across Skills）
+
+如果多个 Skill 共享同一段逻辑：
+
+```
+# 在 .tmpl 模板中
+{{QA_METHODOLOGY}}     ← 构建时从生成器注入
+{{BROWSE_SETUP}}       ← 浏览器设置指令
+{{BASE_BRANCH_DETECT}} ← 分支检测逻辑
+```
+
+一处修改，所有 Skill 同步更新。
+
+## 3.4 完整开发流程：从构思到部署
+
+### Step 1：确定你的 Skill 要解决什么问题
+
+问自己：
+- 我反复在做什么手动操作？
+- 我希望 Claude 用什么**态度**做这件事？
+- 这件事需要什么工具？（Bash? Edit? 浏览器?）
+
+### Step 2：写 SKILL.md
 
 ```bash
-# 检查 browse 二进制是否可用
-B=~/.claude/skills/gstack/browse/dist/browse
-if [ -x "$B" ]; then
-  echo "READY: $B"
-else
-  echo "需要先安装 gstack 的 browse 工具"
-fi
+mkdir -p ~/.claude/skills/my-skill
 ```
 
-## 使用浏览器
+用 3.2 的最小模板开始。YAML frontmatter 里的 `allowed-tools` 决定了这个 Skill 能用什么工具。
 
+### Step 3：迭代测试
+
+1. 在 Claude Code 中输入 `/my-skill`
+2. 观察 Claude 的行为是否符合你的预期
+3. 修改 SKILL.md，重新测试
+4. 重复直到满意
+
+### Step 4：（可选）添加模板系统
+
+如果你有多个 Skill 且它们共享逻辑，可以参考 gstack 的 `gen-skill-docs.ts` 搭建模板系统。但对大多数个人 Skill 来说，直接编辑 SKILL.md 就够了。
+
+### Step 5：分享
+
+把 Skill 目录复制到项目的 `.claude/skills/` 下并提交：
 ```bash
-$B goto https://example.com
-$B snapshot -i
-$B click @e3
-$B screenshot /tmp/result.png
-```
+cp -r ~/.claude/skills/my-skill .claude/skills/my-skill
+git add .claude/skills/my-skill
 ```
 
-## 2.7 项目文件结构完整地图
+团队成员 `git clone` 后自动获得这个 Skill。
 
+## 3.5 常见误区
+
+### 误区 1：给 AI 太多领域知识，太少行为框架
+
+```markdown
+# ❌ 长长的检查清单
+检查以下 47 个安全项：1) SQL 注入 2) XSS 3) CSRF ...
+
+# ✅ 行为框架
+你是安全审计员。假设每一行代码都是攻击面。
+对每个输入，追问：它从哪来？验证了吗？失败时拒绝了吗？
 ```
-gstack/                              ← 项目根目录
-│
-├── 📋 文档文件
-│   ├── README.md                    ← 用户入口，安装指南
-│   ├── ARCHITECTURE.md              ← 技术架构设计文档
-│   ├── BROWSER.md                   ← 浏览器命令完整参考
-│   ├── CHANGELOG.md                 ← 版本更新日志
-│   ├── CLAUDE.md                    ← 给 Claude Code 的项目上下文
-│   ├── CONTRIBUTING.md              ← 贡献者指南
-│   ├── TODOS.md                     ← 统一的项目 Backlog
-│   ├── VERSION                      ← 当前版本号 (0.6.4.0)
-│   ├── LICENSE                      ← MIT 许可证
-│   └── docs/
-│       ├── skills.md                ← 13 个 Skill 的深度指南
-│       └── images/                  ← README 中的截图
-│
-├── 🏗 构建与配置
-│   ├── package.json                 ← npm 配置：脚本、依赖
-│   ├── conductor.json               ← Conductor 多会话集成配置
-│   ├── setup                        ← 一键安装脚本（bash）
-│   ├── SKILL.md                     ← /browse skill（自动生成 ← SKILL.md.tmpl）
-│   └── SKILL.md.tmpl                ← /browse skill 模板（手工编辑此文件）
-│
-├── 🌐 browse/ — 浏览器引擎
-│   ├── src/
-│   │   ├── cli.ts                   ← CLI 入口：解析命令，发 HTTP 请求
-│   │   ├── server.ts                ← HTTP 服务器：接收命令，操控浏览器
-│   │   ├── browser-manager.ts       ← 核心：管理 Chromium 实例、Ref 映射
-│   │   ├── commands.ts              ← 命令注册表（唯一数据源）
-│   │   ├── snapshot.ts              ← Snapshot 系统：ARIA 树 → @ref
-│   │   ├── read-commands.ts         ← 只读命令实现
-│   │   ├── write-commands.ts        ← 写入命令实现
-│   │   ├── meta-commands.ts         ← 元命令实现
-│   │   ├── config.ts                ← 路径和配置解析
-│   │   ├── buffers.ts               ← 环形缓冲区（日志）
-│   │   ├── find-browse.ts           ← 二进制发现工具
-│   │   ├── cookie-import-browser.ts ← 浏览器 Cookie 解密与导入
-│   │   ├── cookie-picker-routes.ts  ← Cookie 选择器 HTTP 路由
-│   │   └── cookie-picker-ui.ts      ← Cookie 选择器 Web UI
-│   ├── test/                        ← 浏览器集成测试（166+）
-│   │   ├── commands.test.ts         ← 命令测试
-│   │   ├── snapshot.test.ts         ← Snapshot 测试
-│   │   ├── config.test.ts           ← 配置测试
-│   │   └── ...
-│   └── dist/                        ← 编译输出（gitignored）
-│       ├── browse                   ← 编译后的二进制（~58MB）
-│       └── .version                 ← git commit SHA
-│
-├── 🎭 14 个 Skill 目录（每个含 SKILL.md + SKILL.md.tmpl）
-│   ├── plan-ceo-review/             ← CEO/创始人模式
-│   ├── plan-eng-review/             ← 工程经理模式
-│   ├── plan-design-review/          ← 高级设计师模式
-│   ├── design-consultation/         ← 设计伙伴模式
-│   ├── review/                      ← Staff 工程师模式
-│   │   ├── SKILL.md / SKILL.md.tmpl
-│   │   ├── checklist.md             ← 审查清单 + Fix-First 规则
-│   │   ├── greptile-triage.md       ← Greptile 评论分类规则
-│   │   └── TODOS-format.md          ← TODO 格式规范
-│   ├── design-review/               ← 会编码的设计师模式
-│   ├── qa/                          ← QA 负责人模式
-│   │   ├── SKILL.md / SKILL.md.tmpl
-│   │   └── qa-report-template.md    ← QA 报告模板
-│   ├── qa-only/                     ← QA 报告员模式（只报告不修复）
-│   ├── ship/                        ← 发布工程师模式
-│   ├── retro/                       ← 工程经理回顾模式
-│   ├── document-release/            ← 技术作家模式
-│   ├── setup-browser-cookies/       ← 会话管理员模式
-│   └── gstack-upgrade/              ← 自升级 Skill
-│
-├── 🔧 bin/ — CLI 工具
-│   ├── dev-setup                    ← 开发模式：创建符号链接
-│   ├── dev-teardown                 ← 退出开发模式
-│   ├── gstack-config                ← 配置管理（get/set/list）
-│   ├── gstack-diff-scope            ← 分析 diff 影响范围
-│   ├── gstack-slug                  ← 计算 owner-repo slug
-│   └── gstack-update-check          ← 检查更新（带缓存）
-│
-├── 📜 scripts/ — 构建与开发工具
-│   ├── gen-skill-docs.ts            ← 模板 → SKILL.md 生成器
-│   ├── skill-check.ts               ← Skill 健康仪表盘
-│   ├── dev-skill.ts                 ← 监听模式：改模板自动重新生成
-│   ├── eval-watch.ts                ← 实时 E2E 测试仪表盘
-│   ├── eval-list.ts                 ← 列出所有 eval 运行记录
-│   ├── eval-compare.ts              ← 对比两次 eval 运行
-│   ├── eval-summary.ts              ← 跨运行统计汇总
-│   └── eval-select.ts               ← 预览 diff 会触发哪些测试
-│
-└── 🧪 test/ — 测试套件
-    ├── skill-validation.test.ts     ← Tier 1：静态验证
-    ├── gen-skill-docs.test.ts       ← Tier 1：生成器质量
-    ├── skill-parser.test.ts         ← Tier 1：命令解析
-    ├── touchfiles.test.ts           ← Tier 1：测试依赖完整性
-    ├── skill-e2e.test.ts            ← Tier 2：E2E 测试
-    ├── skill-llm-eval.test.ts       ← Tier 3：LLM 评审
-    └── helpers/
-        ├── session-runner.ts        ← E2E：claude -p 子进程运行器
-        ├── eval-store.ts            ← eval 结果持久化
-        ├── llm-judge.ts             ← LLM 评审调用
-        ├── skill-parser.ts          ← SKILL.md 命令提取器
-        └── touchfiles.ts            ← 测试 ↔ 文件依赖映射
+
+47 项清单限制了 AI 的视野。行为框架释放了 AI 的全部知识。
+
+### 误区 2：在 bash 代码块之间传递变量
+
+```markdown
+# ❌ 不工作（每个代码块是独立 shell）
+```bash
+BRANCH=$(git branch --show-current)
 ```
+```bash
+echo "当前分支是 $BRANCH"    # 变量丢失！
+```
+
+# ✅ 用自然语言传递
+运行上面的命令获取分支名。在后续步骤中使用这个分支名。
+```
+
+### 误区 3：模式漂移（Mode Drift）
+
+gstack 的一条关键规则：
+
+```markdown
+一旦用户选择了模式，就要全力投入。不要悄悄滑向另一种模式。
+```
+
+如果你的 Skill 有多种模式，必须显式锁定。否则 Claude 会在执行过程中"偷偷妥协" — 比如在"范围扩展"模式中悄悄缩减范围。
+
+### 误区 4：一次提太多问题
+
+```markdown
+# ❌ 信息轰炸
+这里有 8 个问题需要你决定...
+
+# ✅ gstack 风格
+一个问题 = 一次 AskUserQuestion。逐个来。
+```
+
+### 误区 5：忘记"如果什么都不做会怎样？"
+
+大多数 Skill 直接跳入"怎么做"。gstack 教我们的是：先问"该不该做"。在你的 Skill 中加一个 Step 0 来挑战前提，可以避免大量无效工作。
 
 ---
 
-## 附录：快速对照表
+# 附录：速查参考
 
 ### gstack 技术栈
 
 | 技术 | 用途 |
 |---|---|
-| **Bun** | JavaScript 运行时 + 包管理器 + 编译器 |
-| **TypeScript** | Browse 引擎源码语言 |
-| **Playwright** | 浏览器自动化库（by Microsoft） |
-| **Chromium** | 无头浏览器实例 |
+| **Bun** | JS 运行时 + 编译器（生成二进制） |
+| **TypeScript** | Browse 引擎源码 |
+| **Playwright** | Chromium 浏览器自动化（by Microsoft） |
 | **Markdown** | Skill 定义格式 |
-| **Anthropic SDK** | LLM 评审测试（devDependency） |
 
 ### 常用命令
 
 | 命令 | 用途 |
 |---|---|
-| `./setup` | 一键安装（构建二进制 + 链接 Skills） |
-| `bun install` | 安装依赖 |
+| `./setup` | 一键安装 |
 | `bun run build` | 生成文档 + 编译二进制 |
-| `bun test` | 运行免费测试（<5 秒） |
+| `bun test` | 免费测试（<5 秒） |
 | `bun run gen:skill-docs` | 从模板重新生成 SKILL.md |
-| `bun run skill:check` | Skill 健康仪表盘 |
-| `bun run dev:skill` | 监听模式开发 |
-| `bin/dev-setup` | 进入开发模式 |
-| `bin/dev-teardown` | 退出开发模式 |
+| `bin/dev-setup` / `bin/dev-teardown` | 进入/退出开发模式 |
+
+### 核心文件
+
+```
+gstack/
+├── SKILL.md.tmpl              ← /browse 的 Prompt 模板
+├── setup                      ← 安装脚本
+├── package.json               ← 依赖：playwright, diff
+├── browse/src/                ← 浏览器引擎（14 个 TypeScript 文件）
+│   ├── cli.ts                 ← CLI 入口
+│   ├── server.ts              ← HTTP 服务器
+│   ├── browser-manager.ts     ← Chromium + Ref 管理
+│   ├── commands.ts            ← 命令注册表（唯一数据源）
+│   └── snapshot.ts            ← ARIA 树 → @ref 映射
+├── scripts/gen-skill-docs.ts  ← 模板生成器
+├── {skill-name}/SKILL.md.tmpl ← 各 Skill 的 Prompt 模板（14 个）
+├── review/checklist.md        ← /review 的审查清单 + Fix-First 规则
+└── test/                      ← 三层测试套件
+```
+
+> 完整文件列表见 [GitHub 仓库](https://github.com/garrytan/gstack)。
+
+### 关键概念中英对照
+
+| 英文术语 | 中文解释 |
+|---|---|
+| Skill | 技能指令 — 一个 SKILL.md 文件定义的 Claude 行为模式 |
+| Ref (@e1, @e2) | 引用标识符 — 浏览器中可交互元素的编号 |
+| Snapshot | 快照 — 页面可访问性树的结构化输出 |
+| Preamble | 前言 — 每个 Skill 开头的通用启动代码块 |
+| Plan Mode | 规划模式 — Claude Code 的"先想后做"模式 |
+| Boil the Lake | 煮干湖水 — 完整性原则：AI 时代完整方案的成本接近零 |
+| AI Slop | AI 垃圾 — AI 生成的套路化 UI（紫色渐变、三列网格等） |
+| Fix-First | 先修后报 — 机械问题自动修复，只问真正需要判断的 |
+| Latent Space Activation | 潜在空间激活 — 提到特定人/框架来激活 LLM 的深层知识模式 |
+| Review Readiness Dashboard | 审查就绪仪表盘 — 发布前显示哪些审查已完成 |
+| Conductor | 指挥器 — 并行运行多个 Claude Code 会话的第三方工具 |
 
 ---
 
-> **这份文档基于 gstack v0.6.4.0 源码逐文件分析生成。**
-> 每个技术细节都已对照 ARCHITECTURE.md、CLAUDE.md、CONTRIBUTING.md、package.json、setup 脚本、gen-skill-docs.ts、browse/src/ 源码进行验证。
+> **本文基于 gstack v0.6.4.0 源码逐文件分析。** 所有技术细节对照 ARCHITECTURE.md、CLAUDE.md、CONTRIBUTING.md、14 个 SKILL.md.tmpl 模板源码、browse/src/ 全部 14 个 TypeScript 文件验证。
