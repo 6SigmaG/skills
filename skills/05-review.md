@@ -2,7 +2,7 @@
 
 > **角色：** Staff Engineer / 高级审查模式
 > **定位：** Pre-landing PR 审查，两轮扫描 + 自动修复机械问题
-> **Prompt 长度：** ~400 行 | **allowed-tools：** Read, Grep, Glob, Bash, Edit, Write
+> **Prompt 长度：** ~400 行 | **allowed-tools：** Bash, Read, Edit, Write, Grep, Glob, AskUserQuestion
 > **来源：** `review/SKILL.md.tmpl`
 
 ---
@@ -29,23 +29,20 @@
 
 **原文：**
 ```
-You are a Staff Engineer performing a pre-landing review. Your job is to catch
-real problems before they hit production. You are not here to nitpick style —
-you are here to prevent incidents.
+You are running the /review workflow. Analyze the current branch's diff against
+the base branch for structural issues that tests don't catch.
 ```
 
 **中文翻译：**
-你是一位 Staff Engineer，正在做上线前审查。你的工作是在问题进入生产环境之前把它们抓住。你不是来挑剔代码风格的——你是来防止事故的。
+你正在运行 /review 工作流。分析当前分支相对于基础分支的 diff，找出测试无法捕获的结构性问题。
 
 **设计原理分析：**
 
-这段姿态定义做了两件精准的事：
+注意这段姿态定义的克制——它没有赋予 Claude 一个华丽的头衔（如 "Staff Engineer"），而是直接定义了**任务边界**："structural issues that tests don't catch"（测试无法捕获的结构性问题）。这条指令精确地告诉 Claude：你的价值不在于重复测试已经做的事，而在于发现测试盲区。
 
-第一，它选择了 "Staff Engineer" 而不是 "Senior Engineer" 或 "Tech Lead"。在工程组织里，Staff Engineer 的特殊之处在于：他们不拥有项目，不管人，但他们有**跨团队的技术判断权**。这个角色定义告诉 Claude：你的视野应该超越单个 PR——要考虑系统级影响。
+结合 checklist.md 中的 Suppressions 部分（"DO NOT flag" 清单），/review 通过**负面约束**来控制噪音——明确列出不应该标记的问题类型（如无害的冗余、阈值变更、已在 diff 中解决的问题等）。这种"告诉 AI 什么不重要"的策略，和告诉它什么重要同样关键——甚至更关键，因为 AI 的默认倾向是面面俱到。
 
-第二，"not here to nitpick style" 是一条**负面约束**。没有这条，Claude 会生成大量格式、命名、空行之类的低价值评论。这条指令让 Claude 把注意力集中在真正重要的问题上。
-
-**迁移价值：** 任何审查类 Skill 都应该明确说"你不管什么"。告诉 AI 什么不重要，和告诉它什么重要同样关键——甚至更关键，因为 AI 的默认倾向是面面俱到。
+**迁移价值：** 任何审查类 Skill 都应该明确说"你不管什么"。Suppressions 清单是一种比泛泛说"不要挑剔风格"更精确的实现方式。
 
 ### 2.2 两轮扫描系统（Two-Pass Review）
 
@@ -53,22 +50,24 @@ you are here to prevent incidents.
 
 **Pass 1 — CRITICAL（关键问题）**
 
-**原文：**
+**原文（来自 checklist.md）：**
 ```
-Pass 1 — CRITICAL. Stop-ship issues only:
-- SQL safety: injection vectors, missing parameterization, raw string queries
-- Race conditions: TOCTOU, double-submit, concurrent writes without locks
-- LLM trust boundary: unsanitized model output used in SQL/HTML/shell/eval
-- Enum completeness: new enum value added but switch/case statements elsewhere
-  in the codebase not updated (READ CODE OUTSIDE THE DIFF)
+Pass 1 (CRITICAL): SQL & Data Safety, Race Conditions & Concurrency,
+LLM Output Trust Boundary, Enum & Value Completeness
 ```
 
+具体而言，checklist.md 对四个 CRITICAL 类别展开如下：
+- **SQL & Data Safety**：字符串插值 SQL、TOCTOU 竞态、绕过验证的 update_column、N+1 查询
+- **Race Conditions & Concurrency**：无唯一约束的 read-check-write、无唯一索引的 find_or_create_by、非原子状态转换、html_safe 用于用户控制数据（XSS）
+- **LLM Output Trust Boundary**：LLM 生成的值（邮件、URL、名称）未经格式验证就写入数据库；结构化工具输出未经类型/形状检查就写入数据库
+- **Enum & Value Completeness**：新 enum 值引入后追踪所有消费者（READ CODE OUTSIDE THE DIFF）
+
 **中文翻译：**
-第一轮——关键问题。仅限阻止上线的问题：
-- SQL 安全：注入向量、缺少参数化、原始字符串查询
-- 竞态条件：TOCTOU（检查时间/使用时间）、重复提交、没有锁的并发写入
-- LLM 信任边界：未清洗的模型输出被用在 SQL/HTML/shell/eval 中
-- Enum 完整性：添加了新的 enum 值但代码库其他地方的 switch/case 语句没有更新（读取 diff 之外的代码）
+第一轮——关键问题：
+- SQL 与数据安全：SQL 中的字符串插值、TOCTOU 竞态（应为原子 WHERE + update_all）、绕过验证的 update_column、N+1 查询
+- 竞态条件与并发：无唯一约束的读取-检查-写入模式、无唯一数据库索引的 find_or_create_by、非原子状态转换、html_safe 用于用户控制数据
+- LLM 输出信任边界：LLM 生成值未经验证写入数据库或传给 mailer；结构化工具输出未经类型检查写入数据库
+- Enum 与值完整性：新 enum 值/状态字符串/层级名称/类型常量引入后，追踪每个消费者（读取 diff 之外的代码）
 
 **设计原理分析：**
 
@@ -106,23 +105,26 @@ Enum 完整性：添加了新的 enum 值但代码库其他地方的 switch/case
 
 **Pass 2 — INFORMATIONAL（信息性问题）**
 
-**原文：**
+**原文（来自 checklist.md）：**
 ```
-Pass 2 — INFORMATIONAL. Quality improvements:
-- Conditional side effects: mutations hidden inside boolean expressions
-- Magic numbers: unexplained literals that should be named constants
-- Dead code: unreachable branches, unused imports, commented-out blocks
-- Test gaps: new code paths without corresponding test coverage
-- View/frontend: accessibility issues, missing loading/error states
+Pass 2 (INFORMATIONAL): Conditional Side Effects, Magic Numbers & String
+Coupling, Dead Code & Consistency, LLM Prompt Issues, Test Gaps,
+Completeness Gaps, Crypto & Entropy, Time Window Safety,
+Type Coercion at Boundaries, View/Frontend
 ```
 
 **中文翻译：**
-第二轮——信息性问题。质量改进：
-- 条件副作用：隐藏在布尔表达式中的状态变更
-- 魔法数字：应该命名为常量的未解释字面量
-- 死代码：不可达分支、未使用的导入、被注释掉的代码块
-- 测试缺口：新代码路径没有对应的测试覆盖
-- 视图/前端：可访问性问题、缺少加载/错误状态
+第二轮——信息性问题。质量改进（共 10 个类别）：
+- 条件副作用：分支中遗忘的副作用，日志与实际行为不符
+- 魔法数字与字符串耦合：裸数字字面量应命名为常量，错误消息字符串被其他地方用作查询过滤器
+- 死代码与一致性：赋值未读变量、版本不匹配、CHANGELOG 描述不准确、过期注释
+- LLM Prompt 问题：Prompt 中 0 索引列表（LLM 会返回 1 索引）、Prompt 声明的工具与实际不匹配、多处声明的 token 限制可能漂移
+- 测试缺口：负路径测试只断言类型不断言副作用、缺少 `.expects(:something).never`、安全特性缺少端到端测试
+- 完整性缺口：快捷实现本可在 30 分钟内完成完整版、测试覆盖缺口属于"lake 不是 ocean"级别
+- 加密与熵：截断数据而非哈希、rand() 用于安全场景而非 SecureRandom、非恒定时间比较
+- 时间窗口安全：日期键查找假设"今天"覆盖 24 小时、相关功能间时间窗口不匹配
+- 类型强制转换边界：跨 Ruby→JSON→JS 边界时类型可能变化、哈希输入未调用 .to_s
+- 视图/前端：partial 中的内联 style 块、视图中 O(n*m) 查找、Ruby 端 .select{} 本可为 WHERE 子句
 
 **设计原理分析：**
 
@@ -134,20 +136,23 @@ Pass 2 和 Pass 1 的分离不仅是优先级排序——它是一种**认知负
 
 ### 2.3 Fix-First 模式
 
-**原文：**
+**原文（来自 checklist.md 的 Fix-First Heuristic）：**
 ```
-Fix-First pattern:
-- AUTO-FIX: mechanical issues (dead code, N+1 queries, stale comments,
-  unused imports, obvious typos). Just fix them. Don't ask.
-- ASK: judgment calls (security boundaries, race condition mitigations,
-  architectural changes, API contract changes). Present the problem,
-  your recommendation, and ask for approval.
+AUTO-FIX (agent fixes without asking):     ASK (needs human judgment):
+├─ Dead code / unused variables            ├─ Security (auth, XSS, injection)
+├─ N+1 queries (missing .includes())      ├─ Race conditions
+├─ Stale comments contradicting code       ├─ Design decisions
+├─ Magic numbers → named constants         ├─ Large fixes (>20 lines)
+├─ Missing LLM output validation           ├─ Enum completeness
+├─ Version/path mismatches                 ├─ Removing functionality
+├─ Variables assigned but never read       └─ Anything changing user-visible
+└─ Inline styles, O(n*m) view lookups        behavior
 ```
 
 **中文翻译：**
-修复优先模式：
-- 自动修复：机械性问题（死代码、N+1 查询、过期注释、未使用的导入、明显的拼写错误）。直接修。不要问。
-- 询问：判断性决策（安全边界、竞态条件缓解、架构变更、API 契约变更）。呈现问题、你的建议，然后请求批准。
+修复优先启发式：
+- 自动修复（Agent 直接修，不问）：死代码/未使用变量、N+1 查询、与代码矛盾的过期注释、魔法数字改为命名常量、缺失的 LLM 输出验证、版本/路径不匹配、赋值未读变量、内联样式和 O(n*m) 视图查找
+- 询问（需要人类判断）：安全问题（认证、XSS、注入）、竞态条件、设计决策、大型修复（>20 行）、Enum 完整性、删除功能、任何改变用户可见行为的修复
 
 **设计原理分析：**
 

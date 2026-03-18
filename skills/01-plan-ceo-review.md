@@ -81,10 +81,18 @@ at the highest possible standard.
 
 | 模式 | 原文 | 翻译 | 隐喻 |
 |---|---|---|---|
-| SCOPE EXPANSION | You are building a cathedral. Envision the platonic ideal. Push scope UP. You have permission to dream. | 你在建造一座大教堂。想象柏拉图式的理想形态。把范围往上推。你有权做梦。 | 大教堂建造者 |
-| SELECTIVE EXPANSION | You are a rigorous reviewer who also has taste. Hold the current scope as your baseline. Surface every expansion opportunity individually. | 你是一个有品味的严谨审查者。以当前范围为基线。逐个展示每个扩展机会。 | 有品味的审查者 |
-| HOLD SCOPE | You are a rigorous reviewer. Make it bulletproof. Do not silently reduce OR expand. | 你是一个严谨的审查者。让它防弹。不要悄悄缩小，也不要悄悄扩大。 | 防弹衣制造商 |
-| SCOPE REDUCTION | You are a surgeon. Find the minimum viable version. Cut everything else. Be ruthless. | 你是一个外科医生。找到最小可行版本。砍掉其他所有东西。要狠。 | 外科医生 |
+| SCOPE EXPANSION | You are building a cathedral. Envision the platonic ideal. Push scope UP. Ask "what would make this 10x better for 2x the effort?" You have permission to dream. | 你在建造一座大教堂。想象柏拉图式的理想形态。把范围往上推。问"什么版本能在 2 倍努力下好 10 倍？"你有权做梦。 | 大教堂建造者 |
+| SELECTIVE EXPANSION | You are a rigorous reviewer who also has taste. Hold the current scope as your baseline — make it bulletproof. But separately, surface every expansion opportunity individually as an AskUserQuestion so the user can cherry-pick. | 你是一个有品味的严谨审查者。以当前范围为基线——让它防弹。但同时逐个展示每个扩展机会供用户逐一挑选。 | 有品味的审查者 |
+| HOLD SCOPE | You are a rigorous reviewer. The plan's scope is accepted. Your job is to make it bulletproof. Do not silently reduce OR expand. | 你是一个严谨的审查者。计划的范围已被接受。你的工作是让它防弹。不要悄悄缩小，也不要悄悄扩大。 | 防弹衣制造商 |
+| SCOPE REDUCTION | You are a surgeon. Find the minimum viable version that achieves the core outcome. Cut everything else. Be ruthless. | 你是一个外科医生。找到能实现核心成果的最小可行版本。砍掉其他所有东西。要狠。 | 外科医生 |
+
+**第五条隐含姿态 — COMPLETENESS IS CHEAP（完整性很廉价）：**
+
+> **原文：** "AI coding compresses implementation time 10-100x. When evaluating 'approach A (full, ~150 LOC) vs approach B (90%, ~80 LOC)' — always prefer A. The 70-line delta costs seconds with CC. 'Ship the shortcut' is legacy thinking from when human engineering time was the bottleneck. Boil the lake."
+>
+> **翻译：** AI 编码把实现时间压缩了 10-100 倍。当评估"方案 A（完整，~150 行代码）vs 方案 B（90%，~80 行代码）"时——永远选 A。70 行的差距在 CC 下只需几秒钟。"先上线简化版"是人力工程时代的遗留思维。煮干湖水。
+
+这条跨越所有四种模式，是 gstack 的核心哲学"Boil the Lake"在此 Skill 中的具体体现。
 
 **关键规则（防止模式漂移）：**
 ```
@@ -95,7 +103,7 @@ at the highest possible standard.
 
 **迁移价值：** "模式锁定 + 防漂移" 是一个极其通用的设计模式。任何有多种行为模式的 Skill 都应该加上这条规则，否则 Claude 会在执行过程中"偷偷妥协"。
 
-### 2.4 Prime Directives（首要指令 — 9 条不可违背的原则）
+### 2.4 Prime Directives（首要指令 — 9 条不可违背的原则）+ Engineering Preferences
 
 这 9 条指令是整个 Skill 的骨架。它们不是检查清单 — 它们是**思维原则**。
 
@@ -231,7 +239,7 @@ CURRENT STATE    --->    THIS PLAN    --->    12-MONTH IDEAL
 
 注意：这些时间是人类团队时间。Prompt 要求同时展示 AI 压缩后的时间（通常 6 小时人类 → 30-60 分钟 AI）。
 
-### 2.7 10 个审查环节
+### 2.7 11 个审查环节（10 + 1 条件触发）
 
 | 环节 | 审查什么 | 关键产出 |
 |---|---|---|
@@ -256,7 +264,7 @@ STOP. AskUserQuestion 一次一个问题。不要合并。给推荐 + 原因。
 
 **设计原理分析：**
 
-虽然这 10 个环节用的是工程术语，但当输入不是工程计划时，Claude 会自动迁移：
+虽然这 11 个环节用的是工程术语，但当输入不是工程计划时，Claude 会自动迁移：
 - "架构审查" → 业务结构审查
 - "单点故障" → 关键依赖（如只有一个客户占 50% 收入）
 - "回滚计划" → 如果方向错了怎么退出
@@ -277,16 +285,20 @@ STOP. AskUserQuestion 一次一个问题。不要合并。给推荐 + 原因。
 
 ### 2.9 模式快速参考表
 
-| 维度 | 扩展 | 保持范围 | 缩减 |
-|---|---|---|---|
-| 范围方向 | 往上推 | 保持 | 往下推 |
-| 10 倍检查 | 必须 | 可选 | 跳过 |
-| 柏拉图式理想 | 做 | 不做 | 不做 |
-| 惊喜机会 | 5+ 个 | 看到就记 | 跳过 |
-| 复杂度问题 | "够大吗？" | "太复杂了吗？" | "是最小版本吗？" |
-| 时间线审问 | 完整 | 只做关键决策 | 跳过 |
-| 错误映射 | 完整 + 混沌场景 | 完整 | 只做关键路径 |
-| 第 2/3 阶段规划 | 画出来 | 记下来 | 跳过 |
+| 维度 | 扩展 | 选择性扩展 | 保持范围 | 缩减 |
+|---|---|---|---|---|
+| 范围方向 | 往上推（opt-in） | 保持 + 逐个展示 | 保持 | 往下推 |
+| 推荐姿态 | 热情推荐 | 中立展示 | 不适用 | 不适用 |
+| 10 倍检查 | 必须 | 作为候选展示 | 可选 | 跳过 |
+| 柏拉图式理想 | 做 | 不做 | 不做 | 不做 |
+| 惊喜机会 | opt-in 仪式 | 逐个挑选仪式 | 看到就记 | 跳过 |
+| 复杂度问题 | "够大吗？" | "对了吗？还有什么值得加的？" | "太复杂了吗？" | "是最小版本吗？" |
+| 品味校准 | 做 | 做 | 不做 | 不做 |
+| 时间线审问 | 完整（1-6 小时） | 完整（1-6 小时） | 只做关键决策 | 跳过 |
+| 错误映射 | 完整 + 混沌场景 | 完整 + 已接受项的混沌场景 | 完整 | 只做关键路径 |
+| CEO 计划文档 | 写入磁盘 | 写入磁盘 | 跳过 | 跳过 |
+| 第 2/3 阶段规划 | 画出已接受项 | 画出已接受的挑选项 | 记下来 | 跳过 |
+| 设计审查（第 11 节） | "无可逃避的"UI 审查 | 如检测到 UI 范围 | 如检测到 UI 范围 | 跳过 |
 
 ---
 
