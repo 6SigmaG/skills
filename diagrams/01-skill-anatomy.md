@@ -61,23 +61,32 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-## 2. 十三个 Skill 的骨架对比
+## 2. 二十一个 Skill 的骨架对比
 
 ```
-                    元数据   角色    认知模式   步骤数   规则数   工具数
-                    ──────  ──────  ────────  ──────  ──────  ──────
-plan-ceo-review      ✓      CEO      18个      11      8+      5
-plan-eng-review      ✓      EM       15个      8       6+      6
-plan-design-review   ✓      设计师   12个      10      5+      5
-design-consultation  ✓      设计伙伴  —        7       10+     6
-review               ✓      Staff    16个      双Pass  12+     7
-design-review        ✓      设计审查  —        5循环   8+      7
-qa                   ✓      QA负责人  —        7+循环  15+     7
-qa-only              ✓      QA报告员  —        7       11+     4
-browse               ✓      基础设施  —        50+命令  —      2
-ship                 ✓      发布EM    —        8阶段   10+     7
-retro                ✓      EM回顾    —        14      5+      6
-document-release     ✓      技术作家  —        9       8+      7
+                    元数据   角色      认知模式   步骤数   规则数   工具数
+                    ──────  ────────  ────────  ──────  ──────  ──────
+office-hours         ✓      YC合伙人   6问诊断   6阶段   5+      4
+plan-ceo-review      ✓      CEO        18个     11      8+      5
+plan-eng-review      ✓      EM         15个     8       6+      6
+plan-design-review   ✓      设计师     12个     10      5+      5
+design-consultation  ✓      设计伙伴    —       7       10+     6
+review               ✓      Staff      16个     双Pass  12+     7
+design-review        ✓      设计审查    —       5循环   8+      7
+codex                ✓      第二意见    3模式    3       5+      2
+investigate          ✓      调试专家    4阶段    4       8+      7
+qa                   ✓      QA负责人    —       7+循环  15+     7
+qa-only              ✓      QA报告员    —       7       11+     4
+browse               ✓      基础设施    —       50+命令  —      2
+setup-browser-cookies ✓     会话管理    —       3       3+      3
+ship                 ✓      发布EM      —       8阶段   10+     7
+retro                ✓      EM回顾      —       14      5+      6
+document-release     ✓      技术作家    —       9       8+      7
+careful              ✓      安全守卫    —       模式匹配 2+     1
+freeze               ✓      编辑锁      —       3       2+      2
+guard                ✓      全面防护    —       3       2+      2
+unfreeze             ✓      解锁        —       2       1+      1
+gstack-upgrade       ✓      自更新      —       4       3+      3
 setup-browser-cookies ✓     会话管理  —        5       4+      3
 ```
 

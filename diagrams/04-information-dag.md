@@ -140,6 +140,24 @@ Kay 的关键发现：Skill 不直接调用彼此，而是通过共享文件系�
                         │                    │
 /setup-browser-cookies─►│ .gstack/browse     │──────► /browse
                         │ .json (守护进程)    │
+                        │                    │
+/office-hours ────────►│ ~/.gstack/projects/ │──────► /plan-ceo-review
+                        │ *-design-*.md      │       (设计文档作为输入)
+                        │                    │
+/investigate ─────────►│ root-cause.md      │──────► /qa (验证修复)
+                        │ (根因分析)          │
+                        │                    │
+/codex ───────────────►│ codex-findings     │──────► /review (交叉比对)
+                        │                    │
+/freeze ──────────────►│ ~/.gstack/         │──────► /unfreeze
+                        │ freeze-dir.txt     │       (读取并删除)
+                        │                    │
+/careful ─────────────►│ [pre-tool hook]    │──────► Bash (拦截检查)
+                        │                    │
+/guard ───────────────►│ [组合 careful +    │──────► /careful + /freeze
+                        │  freeze]           │
+                        │                    │
+/gstack-upgrade ──────►│ VERSION            │──────► 自身 (版本比对)
                         └────────────────────┘
 
 关键观察：
@@ -147,6 +165,8 @@ Kay 的关键发现：Skill 不直接调用彼此，而是通过共享文件系�
   2. 通信介质是文件 → 可用标准工具检查和调试
   3. 文件格式是契约 → test-plan.md 的结构是隐式 API
   4. 用户决定执行顺序 → 晚绑定（Kay 的核心洞察）
+  5. 安全 Skill 通过 hook 系统运作，不参与数据流但影响行为
+  6. /office-hours 的设计文档通过文件系统自然流入 plan 阶段
 ```
 
 ## 4. 典型使用流程（按 Boyd 的时序视角）
@@ -195,9 +215,12 @@ Phase        Skill              输入              输出               耗时
 你有什么？                     推荐流程
 ──────────                    ──────────
 
+产品方向不确定
+  └── 需要重新审视方向          A0: office-hours → plan-ceo → plan-eng → ...
+
 新功能需求
   ├── 大功能（>1 周）          A: plan-ceo → plan-eng → design-consult
-  │                              → 编码 → review → qa → ship → doc-release
+  │                              → 编码 → review → codex → qa → ship → doc-release
   │
   ├── 中功能（1-3 天）          B: plan-eng → 编码 → review → qa → ship
   │
@@ -205,7 +228,8 @@ Phase        Skill              输入              输出               耗时
 
 Bug 报告
   ├── 有复现步骤                D: qa（自动定位+修复+验证）→ ship
-  ├── 无复现步骤                E: qa-only（先诊断）→ qa（修复）→ ship
+  ├── 无复现步骤                E: investigate（根因调试）→ qa（验证）→ ship
+  ├── 复杂/深层 bug             E2: investigate → qa → ship
   └── 视觉 bug                  F: design-review（定位+修复）→ ship
 
 设计改进
@@ -213,10 +237,15 @@ Bug 报告
   │                              → 编码 → design-review
   └── 已有页面优化              H: design-review（直接审查+修复）
 
+高风险操作
+  ├── 修改关键模块              I0: guard → 编码 → review → qa → ship
+  └── 操作生产环境              I1: careful → 操作
+
 发布
   ├── 常规发布                  I: ship → doc-release
   └── 发布 + 回顾               J: ship → doc-release → retro
 
 周期性
-  └── 每周五                    K: retro
+  ├── 每周五                    K: retro
+  └── 版本更新                  L: gstack-upgrade
 ```
