@@ -87,7 +87,6 @@ freeze               ✓      编辑锁      —       3       2+      2
 guard                ✓      全面防护    —       3       2+      2
 unfreeze             ✓      解锁        —       2       1+      1
 gstack-upgrade       ✓      自更新      —       4       3+      3
-setup-browser-cookies ✓     会话管理  —        5       4+      3
 ```
 
 ## 3. 骨架的四个变体
