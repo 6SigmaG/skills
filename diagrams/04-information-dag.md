@@ -158,6 +158,26 @@ Kay 的关键发现：Skill 不直接调用彼此，而是通过共享文件系�
                         │  freeze]           │
                         │                    │
 /gstack-upgrade ──────►│ VERSION            │──────► 自身 (版本比对)
+                        │                    │
+/cso ────────────────►│ security-report    │──────► /ship (发布前安全检查)
+                        │ trend-fingerprints │       /cso (下一次趋势对比)
+                        │                    │
+/setup-deploy ────────►│ CLAUDE.md          │──────► /land-and-deploy
+                        │ (Deploy Config)    │       (读取部署配置)
+                        │                    │
+/ship ────────────────►│ PR (GitHub)        │──────► /land-and-deploy
+                        │                    │       (合并 + 部署)
+                        │                    │
+/land-and-deploy ─────►│ deploy status      │──────► /canary (部署后监控)
+                        │                    │
+/canary ──────────────►│ canary-baseline    │──────► /canary (下一次对比)
+                        │ health-report      │
+                        │                    │
+/benchmark ───────────►│ perf-baseline.json │──────► /benchmark (下一次对比)
+                        │ perf-report        │
+                        │                    │
+/autoplan ────────────►│ 读取 plan-ceo/     │──────► 审查就绪仪表盘
+                        │ design/eng SKILL.md│       (多 Skill 自动输出)
                         └────────────────────┘
 
 关键观察：
@@ -167,6 +187,8 @@ Kay 的关键发现：Skill 不直接调用彼此，而是通过共享文件系�
   4. 用户决定执行顺序 → 晚绑定（Kay 的核心洞察）
   5. 安全 Skill 通过 hook 系统运作，不参与数据流但影响行为
   6. /office-hours 的设计文档通过文件系统自然流入 plan 阶段
+  7. v0.11+ 新增完整的部署链：/ship → /land-and-deploy → /canary
+  8. /autoplan 是唯一从磁盘读取其他 Skill 文件的 Skill（元 Skill）
 ```
 
 ## 4. 典型使用流程（按 Boyd 的时序视角）
@@ -241,11 +263,25 @@ Bug 报告
   ├── 修改关键模块              I0: guard → 编码 → review → qa → ship
   └── 操作生产环境              I1: careful → 操作
 
+安全审计
+  ├── 日常扫描                  I0-sec: cso --daily
+  ├── 月度深度审计              I0-deep: cso --comprehensive
+  └── PR 前安全检查             I0-diff: cso --diff
+
 发布
-  ├── 常规发布                  I: ship → doc-release
-  └── 发布 + 回顾               J: ship → doc-release → retro
+  ├── 创建 PR                   I: ship → doc-release
+  ├── 全链路发布                J: ship → land-and-deploy → canary
+  └── 自动审查 + 发布           J-auto: autoplan → 编码 → review → ship → land-and-deploy
+
+部署
+  ├── 首次设置                  K0: setup-deploy（一次性）
+  ├── 合并到生产                K1: land-and-deploy
+  └── 部署后监控                K2: canary
+
+性能
+  └── 性能基线/对比             K3: benchmark
 
 周期性
-  ├── 每周五                    K: retro
-  └── 版本更新                  L: gstack-upgrade
+  ├── 每周五                    L: retro
+  └── 版本更新                  M: gstack-upgrade
 ```

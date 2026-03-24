@@ -143,30 +143,47 @@
   5. 最后重新定义 C5（文化）的格式和语气
 ```
 
-## 4. 约束强度在 21 个 Skill 中的分布
+## 4. 约束强度在 27 个 Skill 中的分布
 
 ```
               C1硬   C2结构  C3语言  C4姿态  C5文化
               ─────  ─────  ─────  ─────  ─────
+office-hours   ●●●    ●●     ●●     ●●●    ●
 plan-ceo       ○      ●●     ●      ●●●    ●
 plan-eng       ○      ●●●    ●●     ●●     ●
 plan-design    ○      ●●●    ●●     ●●     ●
 design-consult ○      ●●     ●●●    ●      ●●●
 review         ○      ●●     ●●●    ●●●    ●
 design-review  ○      ●●●    ●●     ●      ●●
+codex          ●●●    ●●     ●●     ●      ─
+investigate    ○      ●●●    ●●●    ●●     ─
 qa             ○      ●●●    ●●●    ●      ●
 qa-only        ●●●    ●●     ●●●    ●      ●
 browse         ●●●    ─      ─      ─      ─
+setup-cookies  ●●     ●      ●      ─      ─
 ship           ○      ●●●    ●●     ─      ●●
 retro          ○      ●●●    ●●     ●●     ●●●
 doc-release    ○      ●●     ●●●    ─      ●●
-setup-cookies  ●●     ●      ●      ─      ─
+careful        ●      ●      ●      ─      ─
+freeze         ●●●    ●      ●      ─      ─
+guard          ●●●    ●      ●      ─      ─
+unfreeze       ●      ─      ─      ─      ─
+gstack-upgrade ●      ●●     ●      ─      ●
+cso            ○      ●●●    ●●●    ●●●    ─
+land-and-dep   ○      ●●●    ●●     ─      ●
+canary         ○      ●●●    ●●     ─      ─
+benchmark      ○      ●●●    ●      ─      ─
+autoplan       ○      ●●●    ●●●    ●●●    ─
+setup-deploy   ○      ●●     ●      ─      ─
 
 ●●● 核心依赖   ●● 中度   ● 轻度   ○ 标准(有Edit/Write)   ─ 不适用
 
 观察：
-  → qa-only 和 browse 是唯二重度依赖 C1 硬约束的 Skill
-  → plan 类 Skill 重度依赖 C4 姿态约束
-  → 执行类 Skill (qa/ship) 重度依赖 C2 结构约束 + C3 语言约束
+  → qa-only, browse, codex, office-hours, freeze, guard 重度依赖 C1 硬约束
+  → 安全三件套 (careful/freeze/guard) 几乎完全依赖 C1 硬约束，是约束最"硬"的 Skill
+  → plan 类 Skill 和 autoplan 重度依赖 C4 姿态约束
+  → 执行类 Skill (qa/ship/investigate/land-and-deploy/canary) 重度依赖 C2 结构约束
+  → cso 和 investigate 的 C3 语言约束极强（安全规则不可违反）
+  → autoplan 的 C4 姿态约束极强（6 条编码决策原则 + 故意没有 AskUserQuestion）
   → retro 和 design-consultation 重度依赖 C5 文化约束
 ```
