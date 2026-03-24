@@ -1,6 +1,6 @@
 # gstack 深度解构与学习指南
 
-> 基于 gstack v0.8.5 源码逐文件分析 | Garry Tan（Y Combinator CEO）
+> 基于 gstack v0.11.10 源码逐文件分析 | Garry Tan（Y Combinator CEO）
 >
 > 本文比你能找到的任何 gstack 介绍都更深入。它不仅解释 gstack **做什么**，更拆解它**为什么有效** — 从 Prompt Engineering 的底层原理到可以直接复用的设计模式。
 
@@ -12,7 +12,7 @@
 - [Layer 1：先感受，再理解](#layer-1先感受再理解)
   - [1.1 一个功能从想法到上线](#11-一个功能从想法到上线)
   - [1.2 30 分钟动手实验](#12-30-分钟动手实验)
-  - [1.3 21 个角色全景](#13-21-个角色全景)
+  - [1.3 27 个角色全景](#13-27-个角色全景)
 - [Layer 2：为什么有效 — 设计原理深度拆解](#layer-2为什么有效--设计原理深度拆解)
   - [2.1 核心发现：姿态 > 内容](#21-核心发现姿态--内容)
   - [2.2 五个设计哲学](#22-五个设计哲学)
@@ -31,18 +31,18 @@
 
 # Layer 0：30 秒理解 gstack
 
-**gstack 把一个 AI 助手变成一支 21 人的虚拟工程团队。**
+**gstack 把一个 AI 助手变成一支 27 人的虚拟工程团队。**
 
 没有 gstack：你说"帮我加个功能"→ AI 直接写代码 → 直接提交。
-有 gstack：YC 合伙人重新审视方向 → CEO 重新思考问题 → 工程经理画架构图 → 写代码 → Staff 工程师找 Bug → 调试专家定位根因 → QA 打开真实浏览器测试 → Codex 跨模型验证 → 发布工程师创建 PR → 技术作家更新文档。安全守卫全程保护。
+有 gstack：YC 合伙人重新审视方向 → CEO 重新思考问题 → 工程经理画架构图 → 写代码 → Staff 工程师找 Bug → 调试专家定位根因 → QA 打开真实浏览器测试 → Codex 跨模型验证 → 首席安全官做威胁建模 → 发布工程师创建 PR → 合并部署到生产 → Canary 监控 → 技术作家更新文档。安全守卫全程保护。
 
-二十一个命令。一个人。一支团队的产出。
+二十七个命令。一个人。一支团队的产出。
 
 ---
 
 # Layer 1：先感受，再理解
 
-> **TL;DR** — 本层通过一个完整示例和一个动手实验，让你在 15 分钟内**体感**到 gstack 的认知模式切换效果，然后再看 21 个角色的全景。
+> **TL;DR** — 本层通过一个完整示例和一个动手实验，让你在 15 分钟内**体感**到 gstack 的认知模式切换效果，然后再看 27 个角色的全景。
 
 ## 1.1 一个功能从想法到上线
 
@@ -137,9 +137,9 @@ cat ~/.claude/skills/gstack/plan-ceo-review/SKILL.md | head -100
 
 带着你刚才的使用体验来读这个 Prompt。注意它**没有**教 Claude 任何领域知识 — 它定义的是"姿态"和"流程"。
 
-## 1.3 21 个角色全景
+## 1.3 27 个角色全景
 
-gstack 的 21 个 Skill（技能指令）按软件开发生命周期排列：
+gstack 的 27 个 Skill（技能指令）按软件开发生命周期排列：
 
 ```
                         ┌──────────────────────────────┐
@@ -181,13 +181,22 @@ gstack 的 21 个 Skill（技能指令）按软件开发生命周期排列：
                         └──────────┬───────────────────┘
                                    │
                         ┌──────────▼───────────────────┐
+  安全阶段              │  /cso (安全审计 + 威胁建模)    │
+                        └──────────┬───────────────────┘
+                                   │
+                        ┌──────────▼───────────────────┐
   发布阶段              │  /ship (发布 + PR)            │
-                        │  /retro (周回顾)              │
+                        │  /land-and-deploy (合并+部署)  │
+                        │  /canary (部署后监控)          │
+                        │  /benchmark (性能基线对比)     │
                         │  /document-release (文档更新)  │
+                        │  /retro (周回顾)              │
                         └──────────┬───────────────────┘
                                    │
                         ┌──────────▼───────────────────┐
   维护阶段              │  /gstack-upgrade (自动升级)    │
+                        │  /setup-deploy (部署配置)      │
+                        │  /autoplan (自动审查流水线)    │
                         └──────────────────────────────┘
 ```
 
@@ -201,7 +210,7 @@ gstack 的 21 个 Skill（技能指令）按软件开发生命周期排列：
 - `/retro` 读取 commit 历史和 TODOS.md 来生成回顾报告
 - `/careful`、`/freeze`、`/guard` 在编码全程提供安全防护
 
-这不是 21 个独立工具，这是一个有状态的流水线。
+这不是 27 个独立工具，这是一个有状态的流水线。
 
 ### 各角色速览
 
@@ -227,6 +236,12 @@ gstack 的 21 个 Skill（技能指令）按软件开发生命周期排列：
 | 安全 | `/freeze` | 限制 Edit/Write 到指定目录，防止越界编辑 |
 | 安全 | `/guard` | 同时激活 /careful + /freeze，一键全面防护 |
 | 安全 | `/unfreeze` | 解除 /freeze 的编辑范围限制 |
+| 安全 | `/cso` | 首席安全官。OWASP Top 10 + STRIDE 威胁建模 + 基础设施审计。15 阶段，零噪音（8/10 置信门控），独立验证每个发现 |
+| 发布 | `/land-and-deploy` | 合并 PR → 等待 CI → 触发部署 → 生产验证。/ship 的后半段 |
+| 发布 | `/canary` | 部署后 SRE 监控。周期性截图对比、控制台错误检测、页面故障告警 |
+| 发布 | `/benchmark` | 性能回归检测。Core Web Vitals 基线对比，三级状态（OK/WARNING/REGRESSION） |
+| 维护 | `/autoplan` | 一键全审查。自动运行 CEO → 设计 → 工程审查，用 6 条原则自动决策，只留品味决策给你 |
+| 维护 | `/setup-deploy` | 一次性部署配置。自动检测 Fly.io/Render/Vercel/Netlify 等平台，写入 CLAUDE.md |
 | 维护 | `/gstack-upgrade` | 自动检测并升级到最新版本，支持全局/vendored 安装 |
 
 ---
@@ -817,7 +832,7 @@ gstack/
 │   ├── commands.ts            ← 命令注册表（唯一数据源）
 │   └── snapshot.ts            ← ARIA 树 → @ref 映射
 ├── scripts/gen-skill-docs.ts  ← 模板生成器
-├── {skill-name}/SKILL.md.tmpl ← 各 Skill 的 Prompt 模板（21 个）
+├── {skill-name}/SKILL.md.tmpl ← 各 Skill 的 Prompt 模板（27 个）
 ├── review/checklist.md        ← /review 的审查清单 + Fix-First 规则
 └── test/                      ← 三层测试套件
 ```
@@ -842,4 +857,4 @@ gstack/
 
 ---
 
-> **本文基于 gstack v0.8.5 源码逐文件分析。** 所有技术细节对照 ARCHITECTURE.md、CLAUDE.md、CONTRIBUTING.md、21 个 SKILL.md 源码、browse/src/ TypeScript 文件验证。
+> **本文基于 gstack v0.11.10 源码逐文件分析。** 所有技术细节对照 ARCHITECTURE.md、CLAUDE.md、CONTRIBUTING.md、27 个 SKILL.md 源码、browse/src/ TypeScript 文件验证。

@@ -88,7 +88,7 @@
       → 锚定（限制叙事边界）
 ```
 
-## 3. 五哲学在 21 个 Skill 中的体现
+## 3. 五哲学在 27 个 Skill 中的体现
 
 ```
               φ1姿态  φ2过程  φ3完整  φ4约束  φ5锚定
@@ -114,13 +114,21 @@ freeze         ─      ─      ─      ●●●    ─
 guard          ─      ─      ─      ●●●    ─
 unfreeze       ─      ─      ─      ●      ─
 gstack-upgrade ─      ●      ─      ●      ●
+cso            ●●●    ●●●    ●●●    ●●●    ●●●
+land-and-dep   ─      ●●●    ●●●    ●●     ●
+canary         ─      ●●●    ●●     ●      ●●●
+benchmark      ─      ●●●    ●●     ─      ●●●
+autoplan       ●●●    ●●●    ●●●    ●●●    ─
+setup-deploy   ─      ●●     ─      ●      ●
 
 观察：
   → φ2 过程 和 φ3 完整性 是最普遍的——几乎所有功能型 Skill 都有
-  → φ1 姿态 集中在 plan 和 review 类（需要"判断"的 Skill），office-hours 最强
-  → φ4 约束 覆盖面最广——不仅 qa/design-review/browse，安全三件套 (careful/freeze/guard) 和 investigate/codex 都核心依赖
-  → φ5 锚定 在 retro 和 investigate 最强（最需要"证据"的 Skill）
-  → 安全类 Skill (careful/freeze/guard) 是纯 φ4 约束载体——它们几乎不使用其他哲学
+  → φ1 姿态 集中在 plan/review/cso/autoplan（需要"判断"的 Skill）
+  → /cso 是五哲学全满的 Skill——安全审计需要姿态、过程、完整、约束、锚定全部到位
+  → φ4 约束 覆盖面最广——不仅 qa/design-review/browse，安全三件套和 cso/autoplan 都核心依赖
+  → φ5 锚定 在 retro/investigate/canary/benchmark 最强（需要数据驱动判断的 Skill）
+  → 安全类 Skill (careful/freeze/guard) 是纯 φ4 约束载体
+  → /autoplan 除 φ5 外全满——它是自动化审查的极致体现
 ```
 
 ## 4. 跨领域迁移框架
