@@ -93,25 +93,34 @@
 ```
               φ1姿态  φ2过程  φ3完整  φ4约束  φ5锚定
               ─────  ─────  ─────  ─────  ─────
+office-hours   ●●●    ●●●    ●●     ●●     ─
 plan-ceo       ●●●    ●●     ●●     ●      ─
 plan-eng       ●●     ●●●    ●●●    ●      ─
 plan-design    ●●     ●●●    ●●●    ●      ─
 design-consult ●      ●●     ●●●    ●●●    ●●
 review         ●●●    ●●●    ●●●    ●●     ●
 design-review  ●      ●●●    ●●●    ●●●    ─
+codex          ●      ●●     ●      ●●●    ●●
+investigate    ●●     ●●●    ●●     ●●●    ●●●
 qa             ●      ●●●    ●●     ●●●    ●●
 qa-only        ●      ●●     ●●     ●●●    ●●
 browse         ─      ─      ─      ●●●    ─
+setup-cookies  ─      ●      ─      ●●     ─
 ship           ─      ●●●    ●●●    ●●     ●
 retro          ●●     ●●●    ●●     ●      ●●●
 doc-release    ─      ●●     ●●     ●●     ●●
-setup-cookies  ─      ●      ─      ●●     ─
+careful        ─      ─      ─      ●●●    ─
+freeze         ─      ─      ─      ●●●    ─
+guard          ─      ─      ─      ●●●    ─
+unfreeze       ─      ─      ─      ●      ─
+gstack-upgrade ─      ●      ─      ●      ●
 
 观察：
-  → φ2 过程 和 φ3 完整性 是最普遍的——几乎所有 Skill 都有
-  → φ1 姿态 集中在 plan 和 review 类（需要"判断"的 Skill）
-  → φ4 约束 在 qa/design-review/browse 最强（需要"控制"的 Skill）
-  → φ5 锚定 在 retro 最强（最需要"证据"的 Skill）
+  → φ2 过程 和 φ3 完整性 是最普遍的——几乎所有功能型 Skill 都有
+  → φ1 姿态 集中在 plan 和 review 类（需要"判断"的 Skill），office-hours 最强
+  → φ4 约束 覆盖面最广——不仅 qa/design-review/browse，安全三件套 (careful/freeze/guard) 和 investigate/codex 都核心依赖
+  → φ5 锚定 在 retro 和 investigate 最强（最需要"证据"的 Skill）
+  → 安全类 Skill (careful/freeze/guard) 是纯 φ4 约束载体——它们几乎不使用其他哲学
 ```
 
 ## 4. 跨领域迁移框架

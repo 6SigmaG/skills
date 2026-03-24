@@ -49,7 +49,7 @@
   └─────────────────────────────────┘
 ```
 
-**使用此模式的 Skill：** plan-ceo-review(4姿态), plan-eng-review, plan-design-review, review, qa, retro
+**使用此模式的 Skill：** office-hours(YC合伙人双模式), plan-ceo-review(4姿态), plan-eng-review, plan-design-review, review, investigate(调试专家), codex(三模式), qa, retro
 
 **迁移规则：** 任何需要"判断"而非"执行"的 Skill 都需要姿态模式。判断的质量取决于视角的选择。
 
@@ -75,7 +75,7 @@
   └──────────────────────────────────────┘
 ```
 
-**使用此模式的 Skill：** review(CRITICAL 10类+INFORMATIONAL 10类), design-review(80项), qa(测试层级), plan-design-review(7个Pass), ship(8阶段门控)
+**使用此模式的 Skill：** office-hours(六问诊断), review(CRITICAL 10类+INFORMATIONAL 10类), design-review(80项), qa(测试层级), plan-design-review(7个Pass), ship(8阶段门控)
 
 **迁移规则：** 任何"不遗漏"比"快速完成"更重要的 Skill 都需要检查清单。清单的价值 = 防止沉默遗漏。
 
@@ -108,7 +108,7 @@
   提交 commit
 ```
 
-**使用此模式的 Skill：** qa(test→fix→retest), design-review(audit→fix→re-audit), review(Fix-First自动修复), ship(测试失败→修复→重跑)
+**使用此模式的 Skill：** qa(test→fix→retest), design-review(audit→fix→re-audit), review(Fix-First自动修复), ship(测试失败→修复→重跑), investigate(假设→验证→修复→验证)
 
 **迁移规则：** 如果 AI 有权限修改（Edit/Write 在 allowed-tools 中），就应该用修复循环而非报告模式。唯一例外：合规场景需要审计轨迹（→ 用 qa-only）。
 
@@ -145,6 +145,10 @@
 | review | Fix-First 分类 | 机械问题自动修，判断问题问人 |
 | ship | 版本类型 | MINOR/MAJOR 必须问人 |
 | document-release | 内容类型 | 事实性自动改，叙事性问人 |
+| investigate | 爆炸半径（文件数） | >5 文件触发警告，3 次假设失败升级 |
+| careful | 危险模式匹配 | 匹配已知危险命令 → 警告 |
+| freeze | 路径前缀匹配 | 编辑目标在范围外 → 硬阻止 |
+| guard | careful + freeze 组合 | 同时激活两层门控 |
 
 **迁移规则：** 任何有 Write/Edit 权限且操作不可逆的 Skill 都需要风险门控。门控的关键是**定义清晰的风险度量和阈值**，而非模糊的"如果你不确定就问"。
 
@@ -218,6 +222,10 @@
 | design-review | 设计基线 | `design-baseline.json` |
 | ship | CHANGELOG/VERSION | 项目根目录 |
 | qa | 健康分数 | Skill 输出（被其他 Skill 读取） |
+| office-hours | 设计文档 + 版本链 | `~/.gstack/projects/{slug}/` |
+| codex | 会话 ID | `.context/codex-session-id` |
+| freeze | 冻结目录路径 | `~/.gstack/freeze-dir.txt` |
+| gstack-upgrade | 版本 + 升级偏好 | gstack 安装目录 |
 
 **迁移规则：** 如果一个 Skill 会运行多次且后续运行需要参考之前的结果，就需要持久化。选择 JSON（结构化数据）或 Markdown（可读文档）取决于下游消费者是程序还是人。
 
@@ -229,19 +237,27 @@
                    P1     P2     P3     P4     P5     P6
                   姿态   清单   循环   门控   锚定   持久
                   ─────  ─────  ─────  ─────  ─────  ─────
+office-hours       ●●●    ●●     ─      ─      ─      ●●
 plan-ceo-review    ●●●    ●      ─      ─      ─      ─
 plan-eng-review    ●●     ●●     ─      ─      ─      ●
 plan-design-rev    ●●     ●●●    ●      ─      ─      ─
 design-consult     ●      ●●     ─      ●      ●      ●
 review             ●●●    ●●●    ●●     ●●     ●      ─
 design-review      ●      ●●●    ●●●    ●●●    ─      ●
+codex              ●      ─      ─      ●●     ●      ●
+investigate        ●●     ●      ●●     ●●     ●●     ─
 qa                 ●      ●●     ●●●    ●●●    ●●     ─
 qa-only            ●      ●●     ─      ─      ●●     ─
 browse             ─      ─      ─      ●      ─      ●
+setup-cookies      ─      ●      ─      ●●     ─      ─
 ship               ─      ●●●    ●      ●●●    ●      ●●●
 retro              ●      ─      ─      ─      ●●●    ●●●
 document-release   ─      ●●     ─      ●●     ●      ●
-setup-cookies      ─      ●      ─      ●●     ─      ─
+careful            ─      ─      ─      ●●●    ─      ─
+freeze             ─      ─      ─      ●●●    ─      ●
+guard              ─      ─      ─      ●●●    ─      ●
+unfreeze           ─      ─      ─      ─      ─      ─
+gstack-upgrade     ─      ─      ─      ●      ●      ●●
 
 ● = 轻度使用  ●● = 中度使用  ●●● = 核心依赖  ─ = 未使用
 ```
